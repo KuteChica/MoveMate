@@ -1,11 +1,14 @@
-function Home(){
-  return(
-    <div>
-      <h1>Welcome to Move Mate</h1>
-     
-      <p>Your smart campus shuttle companion</p>
-    </div>
+import CTASection from "../../components/CTASection";
+import FeatureSection from "../../components/FeatureSection";
+import Hero from "../../components/Hero";
 
+function Home() {
+  return (
+    <>
+      <Hero />
+      <FeatureSection />
+      <CTASection />
+    </>
   );
 }
 
