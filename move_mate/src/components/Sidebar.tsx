@@ -15,6 +15,7 @@ function Sidebar() {
       <strong>MoveMate</strong>
       <nav>
         <NavLink to="/dashboard">Dashboard</NavLink>
+        <NavLink to="/routes">Routes</NavLink>
       </nav>
       <button type="button" onClick={handleLogout}>
         Log out
