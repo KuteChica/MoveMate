@@ -1,16 +1,19 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type PropsWithChildren,
 } from "react";
 
 import {
   getCurrentUser,
-  loginRequest,
   logoutRequest,
+  storeAuthSession,
   signupRequest,
+  type AuthTokens,
   type AuthUser,
 } from "../services/authApi";
 
@@ -18,7 +21,7 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: AuthUser | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (user: AuthUser, tokens: AuthTokens) => void;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
 };
@@ -38,31 +41,36 @@ function AuthProvider({ children }: PropsWithChildren) {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const login = async (email: string, password: string) => {
-    try {
-      setUser(await loginRequest(email, password));
-      return true;
-    } catch {
-      return false;
-    }
-  };
+  const login = useCallback((authenticatedUser: AuthUser, tokens: AuthTokens) => {
+    storeAuthSession(authenticatedUser, tokens);
+    setUser(authenticatedUser);
+  }, []);
 
-  const signup = async (name: string, email: string, password: string) => {
+  const signup = useCallback(async (name: string, email: string, password: string) => {
     try {
       await signupRequest(name, email, password);
       return true;
     } catch {
       return false;
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await logoutRequest();
     setUser(null);
-  };
+  }, []);
+
+  const value = useMemo(() => ({
+    isAuthenticated: user !== null,
+    isLoading,
+    user,
+    login,
+    signup,
+    logout,
+  }), [isLoading, user, login, signup, logout]);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated: user !== null, isLoading, user, login, signup, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

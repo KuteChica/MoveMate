@@ -7,7 +7,7 @@ function Sidebar() {
 
   const handleLogout = async () => {
     await logout();
-    navigate("/");
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -27,7 +27,7 @@ function Sidebar() {
         <NavLink to="/profile">Profile</NavLink>
       </nav>
       <button type="button" onClick={handleLogout}>
-        Log out
+        Sign Out
       </button>
     </aside>
   );

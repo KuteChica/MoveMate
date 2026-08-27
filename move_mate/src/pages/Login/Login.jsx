@@ -1,27 +1,34 @@
-import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Form from "../../components/Form";
+import useApi from "../../hooks/useApi";
+import { loginRequest } from "../../services/authApi";
 
 function Login() {
-  const [error, setError] = useState("");
   const { login } = useAuth();
+  const { loading, isError, errMessage, successMessage, execute } = useApi();
   const navigate = useNavigate();
 
   const handleSubmit = async (email, password) => {
-    setError("");
-
-    if (!(await login(email, password))) {
-      setError("Invalid email or password.");
+    const response = await execute(() => loginRequest(email, password));
+    if (!response) {
       return;
     }
 
+    login(response.data.user, response.data.tokens);
     navigate("/", { replace: true });
   };
 
   return (
     <div>
-      <Form title="Log in" submitLabel="Log in" onSubmit={handleSubmit} error={error} />
+      <Form
+        title="Log in"
+        submitLabel="Log in"
+        onSubmit={handleSubmit}
+        error={isError ? errMessage : ""}
+        loading={loading}
+        successMessage={successMessage}
+      />
       <div className="mx-auto flex w-full max-w-md flex-col items-center gap-3 px-6 pb-12">
         <p className="text-sm text-slate-600">Need an account?</p>
         <Link

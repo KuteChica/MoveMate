@@ -5,6 +5,8 @@ function Form({
   submitLabel,
   onSubmit,
   error = "",
+  loading = false,
+  successMessage = "",
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,11 +51,13 @@ function Form({
           />
         </div>
         {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
+        {successMessage && <p className="text-sm text-teal-700" role="status">{successMessage}</p>}
         <button
           className="w-full rounded-md bg-teal-700 px-4 py-2.5 font-medium text-white transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-300"
           type="submit"
+          disabled={loading}
         >
-          {submitLabel}
+          {loading ? "Signing in..." : submitLabel}
         </button>
       </form>
     </section>
