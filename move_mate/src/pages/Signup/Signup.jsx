@@ -1,26 +1,36 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import Form from "../../components/Form";
 
 function Signup() {
+  const [name, setName] = useState("");
   const [error, setError] = useState("");
   const { signup } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (email, password) => {
+  const handleSubmit = async (email, password) => {
     setError("");
-    if (!signup(email, password)) {
+    if (!(await signup(name, email, password))) {
       setError("Enter an email and password to continue.");
       return;
     }
 
-    navigate("/dashboard", { replace: true });
+    navigate("/login", { replace: true, state: { registered: true } });
   };
 
   return (
     <div>
-      <Form title="Create an account" submitLabel="Create account" onSubmit={handleSubmit} error={error} />
+      <section className="mx-auto w-full max-w-md px-6 py-12">
+        <h1 className="mb-8 text-3xl font-semibold text-slate-900">Create an account</h1>
+        <form className="space-y-5" onSubmit={async (event) => { event.preventDefault(); if (event.currentTarget.password.value !== event.currentTarget.confirmPassword.value) { setError("Passwords must match."); return; } await handleSubmit(event.currentTarget.email.value, event.currentTarget.password.value); }}>
+          <label className="block text-sm font-medium text-slate-700">Full Name<input className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900" name="name" value={name} onChange={(event) => setName(event.target.value)} required /></label>
+          <label className="block text-sm font-medium text-slate-700">Student Email<input className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900" name="email" type="email" required /></label>
+          <label className="block text-sm font-medium text-slate-700">Password<input className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900" name="password" type="password" required /></label>
+          <label className="block text-sm font-medium text-slate-700">Confirm Password<input className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900" name="confirmPassword" type="password" required /></label>
+          {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
+          <button className="w-full rounded-md bg-teal-700 px-4 py-2.5 font-medium text-white hover:bg-teal-800" type="submit">Create account</button>
+        </form>
+      </section>
       <div className="mx-auto flex w-full max-w-md flex-col items-center gap-3 px-6 pb-12">
         <p className="text-sm text-slate-600">Already have an account?</p>
         <Link

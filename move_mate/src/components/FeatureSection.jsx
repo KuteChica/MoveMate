@@ -1,18 +1,23 @@
 const features = [
   {
     icon: "⌖",
-    title: "Real-time Tracking",
+    title: "Live Tracking",
     description: "Watch your shuttle move on the map. No more guessing if your ride is minutes away or if it is running late.",
   },
   {
     icon: "◷",
-    title: "Smart Schedules",
+    title: "Estimated Arrival Time",
     description: "View daily routes tailored to your classes. Filter by destination and never hunt for transit tables again.",
   },
   {
     icon: "♧",
-    title: "Student Alerts",
+    title: "Shuttle Routes",
     description: "Get instant push notifications for delays, route changes, or when your bus is 5 minutes away.",
+  },
+  {
+    icon: "!",
+    title: "Notifications",
+    description: "Stay informed about shuttle delays, service changes, and important campus updates.",
   },
 ];
 

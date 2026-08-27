@@ -6,6 +6,10 @@ import Login from "../pages/Login/Login";
 import Signup from "../pages/Signup/Signup";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import Routes from "../pages/Routes/Routes";
+import TrackShuttle from "../pages/TrackShuttle/TrackShuttle";
+import Notifications from "../pages/Notifications/Notifications";
+import Profile from "../pages/Profile/Profile";
+import Representative from "../pages/Representative/Representative";
 
 export type AppRouteDefinition = {
   path: string;
@@ -18,6 +22,7 @@ const routes: AppRouteDefinition[] = [
   { path: "/", element: <Home />, isProtected: false },
   { path: "/about", element: <About />, isProtected: false },
   { path: "/contact", element: <Contact />, isProtected: false },
+  { path: "/track-shuttle", element: <TrackShuttle />, isProtected: true },
   {
     path: "/login",
     element: <Login />,
@@ -32,6 +37,9 @@ const routes: AppRouteDefinition[] = [
   },
   { path: "/dashboard", element: <Dashboard />, isProtected: true },
   { path: "/routes", element: <Routes />, isProtected: true },
+  { path: "/notifications", element: <Notifications />, isProtected: true },
+  { path: "/profile", element: <Profile />, isProtected: true },
+  { path: "/representative", element: <Representative />, isProtected: true },
 ];
 
 export default routes;

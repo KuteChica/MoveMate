@@ -1,8 +1,7 @@
 function Contact() {
+  const handleSubmit = (event) => { event.preventDefault(); event.currentTarget.reset(); };
   return (
-    <div>
-      <h1>Contact Us</h1>
-    </div>
+    <section className="mx-auto w-full max-w-2xl px-6 py-12"><p className="text-sm font-semibold uppercase tracking-[0.14em] text-teal-700">We are listening</p><h1 className="mt-2 text-4xl font-semibold tracking-tight text-slate-900">Contact and feedback</h1><p className="mt-3 text-slate-600">Tell us what would make your campus commute better.</p><form className="mt-8 space-y-5 rounded-lg border border-slate-200 bg-white p-6 shadow-sm" onSubmit={handleSubmit}><label className="block text-sm font-medium text-slate-700">Name<input className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2" required /></label><label className="block text-sm font-medium text-slate-700">Email<input className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2" type="email" required /></label><label className="block text-sm font-medium text-slate-700">Subject<input className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2" required /></label><label className="block text-sm font-medium text-slate-700">Message<textarea className="mt-2 min-h-32 w-full rounded-md border border-slate-300 px-3 py-2" required /></label><button className="rounded-md bg-teal-700 px-4 py-2.5 font-medium text-white hover:bg-teal-800" type="submit">Submit feedback</button></form></section>
   );
 }
 

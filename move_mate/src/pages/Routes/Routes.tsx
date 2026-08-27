@@ -7,6 +7,8 @@ type ShuttleRoute = {
   arrival: string;
   status: "On time" | "Approaching" | "Delayed";
   minutesAway: number;
+  stops: string[];
+  travelTime: string;
 };
 
 const shuttleRoutes: ShuttleRoute[] = [
@@ -17,6 +19,8 @@ const shuttleRoutes: ShuttleRoute[] = [
     arrival: "8:20 AM",
     status: "Approaching",
     minutesAway: 4,
+    stops: ["Main Gate", "Lecture Hall", "Library", "Hostel", "Main Gate"],
+    travelTime: "20 minutes",
   },
   {
     name: "Library Express",
@@ -25,6 +29,8 @@ const shuttleRoutes: ShuttleRoute[] = [
     arrival: "8:28 AM",
     status: "On time",
     minutesAway: 12,
+    stops: ["Main Gate", "Arts Center", "Library", "Main Gate"],
+    travelTime: "13 minutes",
   },
   {
     name: "Residence Loop",
@@ -33,6 +39,8 @@ const shuttleRoutes: ShuttleRoute[] = [
     arrival: "8:48 AM",
     status: "Delayed",
     minutesAway: 19,
+    stops: ["Main Gate", "East Hall", "Student Residences", "Main Gate"],
+    travelTime: "18 minutes",
   },
   {
     name: "Science Connector",
@@ -41,12 +49,15 @@ const shuttleRoutes: ShuttleRoute[] = [
     arrival: "9:00 AM",
     status: "On time",
     minutesAway: 27,
+    stops: ["Library", "Science Building", "Sports Center", "Library"],
+    travelTime: "15 minutes",
   },
 ];
 
 function Routes() {
   const [destination, setDestination] = useState("All destinations");
   const [time, setTime] = useState("Now");
+  const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
 
   const destinations = [
     "All destinations",
@@ -108,7 +119,7 @@ function Routes() {
         </div>
         <div className="divide-y divide-slate-200">
           {visibleRoutes.map((route) => (
-            <article className="grid gap-3 px-5 py-5 sm:grid-cols-[1fr_auto] sm:items-center" key={route.name}>
+            <button className="grid w-full gap-3 px-5 py-5 text-left transition hover:bg-teal-50 sm:grid-cols-[1fr_auto] sm:items-center" key={route.name} type="button" onClick={() => setSelectedRoute(selectedRoute === route.name ? null : route.name)}>
               <div>
                 <div className="flex flex-wrap items-center gap-3">
                   <h3 className="font-semibold text-slate-900">{route.name}</h3>
@@ -130,7 +141,8 @@ function Routes() {
                 <p className="font-semibold text-slate-900">{route.minutesAway} min away</p>
                 <p className="mt-1 text-sm text-slate-500">{route.departure} - {route.arrival}</p>
               </div>
-            </article>
+              {selectedRoute === route.name && <div className="sm:col-span-2"><p className="text-sm text-slate-600">Stops: <span className="font-medium text-slate-900">{route.stops.join(" → ")}</span></p><p className="mt-1 text-sm text-slate-600">Estimated travel time: <span className="font-medium text-slate-900">{route.travelTime}</span></p></div>}
+            </button>
           ))}
           {visibleRoutes.length === 0 && (
             <p className="px-5 py-8 text-sm text-slate-600">No shuttles match this destination.</p>

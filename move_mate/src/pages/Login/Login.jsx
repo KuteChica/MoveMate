@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Form from "../../components/Form";
 
@@ -7,17 +7,16 @@ function Login() {
   const [error, setError] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  const handleSubmit = (email, password) => {
+  const handleSubmit = async (email, password) => {
     setError("");
 
-    if (!login(email, password)) {
-      setError("Enter an email and password to continue.");
+    if (!(await login(email, password))) {
+      setError("Invalid email or password.");
       return;
     }
 
-    navigate(location.state?.from?.pathname || "/dashboard", { replace: true });
+    navigate("/", { replace: true });
   };
 
   return (
