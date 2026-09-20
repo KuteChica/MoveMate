@@ -1,7 +1,26 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+function getGreeting() {
+  const hour = new Date().getHours();
+
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 function PhoneMockup() {
+  const [greeting, setGreeting] = useState(getGreeting());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setGreeting(getGreeting());
+    }, 60000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   return (
     <div className="relative mx-auto w-full max-w-[390px]">
       <div className="absolute -right-4 top-10 h-28 w-28 rounded-full bg-[#d9ece9] opacity-80 blur-2xl" />
@@ -13,7 +32,7 @@ function PhoneMockup() {
           </div>
           <div className="px-3 pb-4 pt-2">
             <div className="mb-3 flex items-center justify-between">
-              <div><p className="text-[8px] text-[#759093]">Good morning</p><p className="text-[12px] font-extrabold text-[#173c41]">Find your shuttle</p></div>
+              <div><p className="text-[8px] text-[#759093]">{greeting}</p><p className="text-[12px] font-extrabold text-[#173c41]">Find your shuttle</p></div>
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#cce9e4] text-[10px]">🙂</div>
             </div>
             <div className="relative h-[142px] overflow-hidden rounded-xl bg-[#dceeed]">
