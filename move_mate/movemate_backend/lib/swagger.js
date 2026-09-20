@@ -1,6 +1,5 @@
 const path = require("path");
 const swaggerJSDoc = require("swagger-jsdoc");
-const config = require("../config");
 
 const options = {
   definition: {
@@ -12,8 +11,8 @@ const options = {
     },
     servers: [
       {
-        url: `http://localhost:${config.server.port}`,
-        description: "Local development server"
+        url: "/",
+        description: "Current MoveMate API server"
       }
     ],
     components: {
