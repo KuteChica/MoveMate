@@ -1,0 +1,16 @@
+{
+  "watch": [
+    "server.js",
+    "config",
+    "lib",
+    "middleware",
+    "routes",
+    ".env"
+  ],
+  "ext": "js,json",
+  "ignore": [
+    "node_modules",
+    "prisma/migrations"
+  ],
+  "exec": "node server.js"
+}

@@ -15,8 +15,8 @@ function Login() {
       return;
     }
 
-    login(response.data.user, response.data.tokens);
-    navigate("/", { replace: true });
+    login(response);
+    navigate("/dashboard", { replace: true });
   };
 
   return (

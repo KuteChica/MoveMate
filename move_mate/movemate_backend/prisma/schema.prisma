@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           Int            @id @default(autoincrement())
+  name         String
+  email        String         @unique
+  passwordHash String?        @map("password_hash")
+  role         String         @default("student")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model ShuttleRoute {
+  id            Int          @id @default(autoincrement())
+  name          String
+  description   String?
+  startLocation String?      @map("start_location")
+  endLocation   String?      @map("end_location")
+  active        Boolean      @default(true)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  stops         RouteStop[]
+  shuttles      Shuttle[]
+  trips         Trip[]
+
+  @@map("shuttle_routes")
+}
+
+model Stop {
+  id        Int         @id @default(autoincrement())
+  name      String
+  latitude  Float
+  longitude Float
+  createdAt DateTime    @default(now()) @map("created_at")
+  routes    RouteStop[]
+
+  @@map("stops")
+}
+
+model RouteStop {
+  routeId  Int          @map("route_id")
+  stopId   Int          @map("stop_id")
+  stopOrder Int         @map("stop_order")
+  route    ShuttleRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  stop     Stop         @relation(fields: [stopId], references: [id], onDelete: Cascade)
+
+  @@id([routeId, stopId])
+  @@unique([routeId, stopOrder])
+  @@map("route_stops")
+}
+
+model Shuttle {
+  id            Int               @id @default(autoincrement())
+  name          String
+  plateNumber   String?           @unique @map("plate_number")
+  status        String            @default("inactive")
+  currentRouteId Int?             @map("current_route_id")
+  updatedAt     DateTime          @default(now()) @updatedAt @map("updated_at")
+  currentRoute  ShuttleRoute?     @relation(fields: [currentRouteId], references: [id], onDelete: SetNull)
+  locations     ShuttleLocation[]
+  trips         Trip[]
+
+  @@map("shuttles")
+}
+
+model ShuttleLocation {
+  id         BigInt   @id @default(autoincrement())
+  shuttleId  Int      @map("shuttle_id")
+  latitude   Float
+  longitude  Float
+  placeName  String?  @map("place_name")
+  speedKmh   Float?   @map("speed_kmh")
+  recordedAt DateTime @default(now()) @map("recorded_at")
+  shuttle    Shuttle  @relation(fields: [shuttleId], references: [id], onDelete: Cascade)
+
+  @@index([shuttleId, recordedAt(sort: Desc)])
+  @@map("shuttle_locations")
+}
+
+model Trip {
+  id        Int           @id @default(autoincrement())
+  shuttleId Int           @map("shuttle_id")
+  routeId   Int?          @map("route_id")
+  startedAt DateTime      @default(now()) @map("started_at")
+  endedAt   DateTime?     @map("ended_at")
+  status    String        @default("active")
+  shuttle   Shuttle       @relation(fields: [shuttleId], references: [id], onDelete: Cascade)
+  route     ShuttleRoute? @relation(fields: [routeId], references: [id], onDelete: SetNull)
+
+  @@map("trips")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  subject   String
+  message   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("feedback")
+}

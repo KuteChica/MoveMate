@@ -1,10 +1,10 @@
 # MoveMate Backend
 
-Node.js + Express + PostgreSQL backend for the MoveMate campus shuttle tracking system.
+Node.js + Express + Prisma + PostgreSQL backend for the MoveMate campus shuttle tracking system.
 
 ## 1. Setup
 
-Copy `.env.example` to `.env` and put in the PostgreSQL credentials for your local `mydb` database.
+Copy `.env.example` to `.env` and set the PostgreSQL credentials and `DATABASE_URL` for your local `mydb` database.
 
 Do not commit `.env`.
 
@@ -16,11 +16,24 @@ npm install
 
 ## 2. Create/update the database
 
-Open pgAdmin Query Tool for `mydb`.
+Prisma 7 reads the migration datasource from `prisma.config.ts`. Run the migration and seed commands from `movemate_backend`:
 
-Run `db/schema.sql` first.
+```bash
+npm run prisma:generate
+npx prisma migrate deploy
+npm run prisma:seed
+```
 
-Then run `db/seed.sql`.
+The migration is stored in `prisma/migrations`, and the idempotent demo seeder is in `prisma/seed.js`.
+
+If `mydb` already contains the tables from the old SQL setup, baseline the initial migration once before deploying it:
+
+```bash
+npx prisma migrate resolve --applied 20260919000000_init
+npx prisma migrate deploy
+```
+
+For new local databases, use `npx prisma migrate dev` with a PostgreSQL user that can create shadow databases.
 
 The existing `users` table is preserved and extended with `password_hash` and `role`.
 
@@ -33,6 +46,8 @@ npm start
 The API runs on:
 
 `http://localhost:5000`
+
+For hosted deployment, see [`DEPLOYMENT.md`](DEPLOYMENT.md). The repository includes a Render Blueprint at [`render.yaml`](../../render.yaml).
 
 Test:
 
@@ -128,4 +143,4 @@ with the Authorization header.
 
 ## Important
 
-The current backend uses the `pg` package directly. It does not require Sequelize or Firebase.
+The backend uses Prisma 7 with the PostgreSQL adapter. It does not require Sequelize or Firebase.

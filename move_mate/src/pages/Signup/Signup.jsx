@@ -1,18 +1,21 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import useApi from "../../hooks/useApi";
-import { signupRequest } from "../../services/authApi";
 
 function Signup() {
   const [name, setName] = useState("");
   const [validationError, setValidationError] = useState("");
+  const { signup } = useAuth();
+  const navigate = useNavigate();
   const { loading, isError, errMessage, isSuccess, successMessage, execute } = useApi();
   const handleSubmit = async (email, password) => {
-    const response = await execute(() => signupRequest(name, email, password));
+    const response = await execute(() => signup(name, email, password));
     if (!response) {
       return;
     }
 
+    navigate("/dashboard", { replace: true });
   };
 
   return (
@@ -21,7 +24,7 @@ function Signup() {
         <h1 className="mb-8 text-3xl font-semibold text-slate-900">Create an account</h1>
         <form className="space-y-5" onSubmit={async (event) => { event.preventDefault(); setValidationError(""); if (event.currentTarget.password.value !== event.currentTarget.confirmPassword.value) { setValidationError("Passwords must match."); return; } await handleSubmit(event.currentTarget.email.value, event.currentTarget.password.value); }}>
           <label className="block text-sm font-medium text-slate-700">Full Name<input className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900" name="name" value={name} onChange={(event) => setName(event.target.value)} required /></label>
-          <label className="block text-sm font-medium text-slate-700">Student Email<input className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900" name="email" type="email" required /></label>
+          <label className="block text-sm font-medium text-slate-700">Email<input className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900" name="email" type="email" required /></label>
           <label className="block text-sm font-medium text-slate-700">Password<input className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900" name="password" type="password" required /></label>
           <label className="block text-sm font-medium text-slate-700">Confirm Password<input className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900" name="confirmPassword" type="password" required /></label>
           {(validationError || isError) && <p className="text-sm text-red-700" role="alert">{validationError || errMessage}</p>}

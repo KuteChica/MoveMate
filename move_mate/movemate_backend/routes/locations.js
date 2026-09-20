@@ -1,9 +1,34 @@
 const express = require("express");
-const pool = require("../database");
+const prisma = require("../database");
 const { protect, authorize } = require("../middleware/auth");
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /api/locations:
+ *   post:
+ *     tags: [Locations]
+ *     summary: Record a shuttle GPS location
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [shuttle_id, latitude, longitude]
+ *             properties:
+ *               shuttle_id: { type: integer }
+ *               latitude: { type: number, format: double, minimum: -90, maximum: 90 }
+ *               longitude: { type: number, format: double, minimum: -180, maximum: 180 }
+ *               place_name: { type: string }
+ *               speed_kmh: { type: number, format: double }
+ *     responses:
+ *       201: { description: Location recorded }
+ *       400: { description: Invalid coordinates }
+ *       404: { description: Shuttle not found }
+ */
 router.post("/", protect, authorize("driver", "admin"), async (req, res) => {
   try {
     const { shuttle_id, latitude, longitude, place_name = null, speed_kmh = null } = req.body;
@@ -21,27 +46,29 @@ router.post("/", protect, authorize("driver", "admin"), async (req, res) => {
       return res.status(400).json({ message: "Invalid GPS coordinates." });
     }
 
-    const shuttle = await pool.query("SELECT id FROM shuttles WHERE id = $1", [shuttle_id]);
-    if (shuttle.rowCount === 0) {
+    const shuttleId = Number(shuttle_id);
+    const shuttle = await prisma.shuttle.findUnique({ where: { id: shuttleId } });
+    if (!shuttle) {
       return res.status(404).json({ message: "Shuttle not found." });
     }
 
-    const result = await pool.query(
-      `INSERT INTO shuttle_locations
-       (shuttle_id, latitude, longitude, place_name, speed_kmh)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [shuttle_id, lat, lon, place_name, speed_kmh === null ? null : Number(speed_kmh)]
-    );
-
-    await pool.query(
-      "UPDATE shuttles SET updated_at = NOW(), status = 'active' WHERE id = $1",
-      [shuttle_id]
-    );
+    const location = await prisma.$transaction(async (tx) => {
+      const createdLocation = await tx.shuttleLocation.create({
+        data: {
+          shuttleId,
+          latitude: lat,
+          longitude: lon,
+          placeName: place_name,
+          speedKmh: speed_kmh === null ? null : Number(speed_kmh),
+        },
+      });
+      await tx.shuttle.update({ where: { id: shuttleId }, data: { status: "active" } });
+      return createdLocation;
+    });
 
     res.status(201).json({
       message: "Location recorded.",
-      location: result.rows[0]
+      location: { ...location, id: Number(location.id), shuttle_id: location.shuttleId, place_name: location.placeName, speed_kmh: location.speedKmh, recorded_at: location.recordedAt }
     });
   } catch (error) {
     console.error(error);
@@ -49,18 +76,36 @@ router.post("/", protect, authorize("driver", "admin"), async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/locations/{shuttleId}/history:
+ *   get:
+ *     tags: [Locations]
+ *     summary: Get recent location history for a shuttle
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: shuttleId
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200: { description: Location history, content: { application/json: { schema: { type: object, properties: { locations: { type: array, items: { type: object } } } } } } }
+ */
 router.get("/:shuttleId/history", protect, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT id, latitude, longitude, place_name, speed_kmh, recorded_at
-       FROM shuttle_locations
-       WHERE shuttle_id = $1
-       ORDER BY recorded_at DESC
-       LIMIT 100`,
-      [req.params.shuttleId]
-    );
-
-    res.json({ locations: result.rows });
+    const locations = await prisma.shuttleLocation.findMany({
+      where: { shuttleId: Number(req.params.shuttleId) },
+      orderBy: { recordedAt: "desc" },
+      take: 100,
+    });
+    res.json({ locations: locations.map((location) => ({
+      id: Number(location.id),
+      latitude: location.latitude,
+      longitude: location.longitude,
+      place_name: location.placeName,
+      speed_kmh: location.speedKmh,
+      recorded_at: location.recordedAt,
+    })) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Could not load location history." });

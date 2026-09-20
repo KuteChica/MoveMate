@@ -1,0 +1,24 @@
+databases:
+  - name: movemate-db
+    plan: free
+
+services:
+  - type: web
+    name: movemate-api
+    runtime: node
+    plan: free
+    rootDir: move_mate/movemate_backend
+    buildCommand: npm install && npx prisma generate
+    startCommand: npx prisma migrate deploy && npm start
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: movemate-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

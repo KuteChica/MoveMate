@@ -1,16 +1,8 @@
-require("dotenv").config();
-const { Pool } = require("pg");
+const { PrismaClient } = require("@prisma/client");
+const { PrismaPg } = require("@prisma/adapter-pg");
+const config = require("./config");
 
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: Number(process.env.DB_PORT || 5432),
-});
+const adapter = new PrismaPg({ connectionString: config.database.url });
+const prisma = new PrismaClient({ adapter });
 
-pool.on("error", (err) => {
-  console.error("Unexpected PostgreSQL pool error:", err);
-});
-
-module.exports = pool;
+module.exports = prisma;

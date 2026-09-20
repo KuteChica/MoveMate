@@ -1,41 +1,83 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const pool = require("../database");
+const prisma = require("../database");
 const { protect, authorize } = require("../middleware/auth");
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /api/users/me:
+ *   get:
+ *     tags: [Users]
+ *     summary: Get the current user's profile
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: User profile }
+ *       401: { description: Authentication required }
+ */
 router.get("/me", protect, async (req, res) => {
-  const result = await pool.query(
-    "SELECT id, name, email, role, created_at FROM users WHERE id = $1",
-    [req.user.id]
-  );
-  res.json({ user: result.rows[0] });
+  const user = await prisma.user.findUnique({
+    where: { id: Number(req.user.id) },
+    select: { id: true, name: true, email: true, role: true, createdAt: true },
+  });
+  res.json({ user: user && { ...user, created_at: user.createdAt } });
 });
 
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     tags: [Users]
+ *     summary: List all users
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: User list }
+ *       403: { description: Admin access required }
+ */
 router.get("/", protect, authorize("admin"), async (req, res) => {
-  const result = await pool.query(
-    "SELECT id, name, email, role, created_at FROM users ORDER BY id"
-  );
-  res.json({ users: result.rows });
+  const users = await prisma.user.findMany({
+    orderBy: { id: "asc" },
+    select: { id: true, name: true, email: true, role: true, createdAt: true },
+  });
+  res.json({ users: users.map((user) => ({ ...user, created_at: user.createdAt })) });
 });
 
+/**
+ * @swagger
+ * /api/users/me:
+ *   patch:
+ *     tags: [Users]
+ *     summary: Update the current user's profile
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string }
+ *               email: { type: string, format: email }
+ *     responses:
+ *       200: { description: Profile updated }
+ *       409: { description: Email already in use }
+ */
 router.patch("/me", protect, async (req, res) => {
   try {
     const { name, email } = req.body;
 
-    const result = await pool.query(
-      `UPDATE users
-       SET name = COALESCE($1, name),
-           email = COALESCE($2, email)
-       WHERE id = $3
-       RETURNING id, name, email, role, created_at`,
-      [name || null, email ? email.trim().toLowerCase() : null, req.user.id]
-    );
+    const user = await prisma.user.update({
+      where: { id: Number(req.user.id) },
+      data: {
+        ...(name ? { name } : {}),
+        ...(email ? { email: email.trim().toLowerCase() } : {}),
+      },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+    });
 
-    res.json({ user: result.rows[0] });
+    res.json({ user: { ...user, created_at: user.createdAt } });
   } catch (error) {
-    if (error.code === "23505") {
+    if (error.code === "P2002") {
       return res.status(409).json({ message: "That email is already in use." });
     }
     console.error(error);
@@ -43,6 +85,29 @@ router.patch("/me", protect, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/users/admin/create:
+ *   post:
+ *     tags: [Users]
+ *     summary: Create a user with an assigned role
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, email, password, role]
+ *             properties:
+ *               name: { type: string }
+ *               email: { type: string, format: email }
+ *               password: { type: string, format: password }
+ *               role: { type: string, enum: [student, driver, representative, admin] }
+ *     responses:
+ *       201: { description: User created }
+ *       403: { description: Admin access required }
+ */
 router.post("/admin/create", protect, authorize("admin"), async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -54,16 +119,14 @@ router.post("/admin/create", protect, authorize("admin"), async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    const result = await pool.query(
-      `INSERT INTO users (name, email, password_hash, role)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, name, email, role, created_at`,
-      [name.trim(), email.trim().toLowerCase(), passwordHash, role]
-    );
+    const user = await prisma.user.create({
+      data: { name: name.trim(), email: email.trim().toLowerCase(), passwordHash, role },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+    });
 
-    res.status(201).json({ user: result.rows[0] });
+    res.status(201).json({ user: { ...user, created_at: user.createdAt } });
   } catch (error) {
-    if (error.code === "23505") {
+    if (error.code === "P2002") {
       return res.status(409).json({ message: "Email already exists." });
     }
     console.error(error);

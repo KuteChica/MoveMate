@@ -1,86 +1,92 @@
-import mockUser from "../api/json/user.json";
-
 export type AuthUser = {
   id: number;
   name: string;
   email: string;
   role: string;
-  username: string;
-  profile: {
-    avatar: string;
-    bio: string;
-  };
+  created_at?: string;
 };
 
-export type AuthTokens = {
-  accessToken: string;
-  refreshToken: string;
+export type AuthSession = {
+  user: AuthUser;
+  token: string;
 };
 
-export type AuthResponse = {
-  success: boolean;
+type AuthApiResponse = {
   message: string;
-  data: {
-    user: AuthUser;
-    tokens: AuthTokens;
-  };
+  user: AuthUser;
+  token: string;
 };
 
-const accessTokenKey = "movemate-access-token";
-const refreshTokenKey = "movemate-refresh-token";
+const authApiUrl = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth`;
+const tokenStorageKey = "movemate-auth-token";
 const userStorageKey = "movemate-auth-user";
 
-const mockResponse = mockUser as AuthResponse & {
-  data: AuthResponse["data"] & { user: AuthUser & { firstName: string; lastName: string; password: string } };
-};
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${authApiUrl}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
 
-const toAuthUser = (user: typeof mockResponse.data.user): AuthUser => ({
-  id: user.id,
-  name: `${user.firstName} ${user.lastName}`.trim(),
-  email: user.email,
-  role: user.role,
-  username: user.username,
-  profile: user.profile,
-});
-
-export async function loginRequest(email: string, password: string): Promise<AuthResponse> {
-  const user = mockResponse.data.user;
-  if (email.trim().toLowerCase() !== user.email || password !== user.password) {
-    throw new Error("Invalid email or password.");
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(body.message || "The request could not be completed.");
   }
 
-  return {
-    ...mockResponse,
-    data: { ...mockResponse.data, user: toAuthUser(user) },
-  };
+  return body as T;
 }
 
-export async function signupRequest(name: string, email: string, password: string) {
-  if (!name.trim() || !email.trim() || !password) {
-    throw new Error("Complete all fields to create an account.");
-  }
-
-  return { success: true, message: "Account created successfully." };
+function saveSession(session: AuthSession) {
+  localStorage.setItem(tokenStorageKey, session.token);
+  localStorage.setItem(userStorageKey, JSON.stringify(session.user));
 }
 
-export async function getCurrentUser(): Promise<AuthUser> {
-  if (localStorage.getItem(accessTokenKey) !== mockResponse.data.tokens.accessToken) {
+export async function loginRequest(email: string, password: string): Promise<AuthSession> {
+  const response = await request<AuthApiResponse>("/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+  return { user: response.user, token: response.token };
+}
+
+export async function signupRequest(name: string, email: string, password: string): Promise<AuthSession> {
+  const response = await request<AuthApiResponse>("/register", {
+    method: "POST",
+    body: JSON.stringify({ name, email, password }),
+  });
+  return { user: response.user, token: response.token };
+}
+
+export async function getCurrentUser(): Promise<AuthSession> {
+  const token = localStorage.getItem(tokenStorageKey);
+  if (!token) {
     throw new Error("No active session.");
   }
 
-  const currentUser = toAuthUser(mockResponse.data.user);
-  localStorage.setItem(userStorageKey, JSON.stringify(currentUser));
-  return currentUser;
+  try {
+    const response = await request<{ user: AuthUser }>("/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const session = { user: response.user, token };
+    saveSession(session);
+    return session;
+  } catch (error) {
+    clearAuthSession();
+    throw error;
+  }
 }
 
-export async function logoutRequest() {
-  localStorage.removeItem(accessTokenKey);
-  localStorage.removeItem(refreshTokenKey);
+function clearAuthSession() {
+  localStorage.removeItem(tokenStorageKey);
   localStorage.removeItem(userStorageKey);
 }
 
-export function storeAuthSession(user: AuthUser, tokens: AuthTokens) {
-  localStorage.setItem(accessTokenKey, tokens.accessToken);
-  localStorage.setItem(refreshTokenKey, tokens.refreshToken);
-  localStorage.setItem(userStorageKey, JSON.stringify(user));
+export function logoutRequest() {
+  clearAuthSession();
+}
+
+export function storeAuthSession(session: AuthSession) {
+  saveSession(session);
 }

@@ -13,7 +13,7 @@ import {
   logoutRequest,
   storeAuthSession,
   signupRequest,
-  type AuthTokens,
+  type AuthSession,
   type AuthUser,
 } from "../services/authApi";
 
@@ -21,8 +21,10 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: AuthUser | null;
-  login: (user: AuthUser, tokens: AuthTokens) => void;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
+  token: string | null;
+  login: (session: AuthSession) => void;
+    updateUser: (user: AuthUser) => void;
+  signup: (name: string, email: string, password: string) => Promise<AuthSession>;
   logout: () => Promise<void>;
 };
 
@@ -30,44 +32,56 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     getCurrentUser()
-      .then(setUser)
+      .then((session) => {
+        setUser(session.user);
+        setToken(session.token);
+      })
       .catch(() => {
         setUser(null);
+        setToken(null);
       })
       .finally(() => setIsLoading(false));
   }, []);
 
-  const login = useCallback((authenticatedUser: AuthUser, tokens: AuthTokens) => {
-    storeAuthSession(authenticatedUser, tokens);
-    setUser(authenticatedUser);
+  const login = useCallback((session: AuthSession) => {
+    storeAuthSession(session);
+    setUser(session.user);
+    setToken(session.token);
   }, []);
 
+    const updateUser = useCallback((updatedUser: AuthUser) => {
+      const currentToken = localStorage.getItem("movemate-auth-token");
+      if (currentToken) storeAuthSession({ user: updatedUser, token: currentToken });
+      setUser(updatedUser);
+    }, []);
+
   const signup = useCallback(async (name: string, email: string, password: string) => {
-    try {
-      await signupRequest(name, email, password);
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
+    const session = await signupRequest(name, email, password);
+    login(session);
+    return session;
+  }, [login]);
 
   const logout = useCallback(async () => {
     await logoutRequest();
     setUser(null);
+    setToken(null);
   }, []);
 
   const value = useMemo(() => ({
     isAuthenticated: user !== null,
     isLoading,
     user,
+    token,
     login,
+      updateUser,
     signup,
     logout,
-  }), [isLoading, user, login, signup, logout]);
+  }), [isLoading, user, token, login, updateUser, signup, logout]);
 
   return (
     <AuthContext.Provider value={value}>
