@@ -44,12 +44,18 @@ async function main() {
     });
   }
 
-  const shuttle = await prisma.shuttle.upsert({
-    where: { plateNumber: "MM-001" },
-    update: { currentRouteId: route.id, status: "active" },
-    create: { name: "MoveMate Shuttle 1", plateNumber: "MM-001", status: "active", currentRouteId: route.id },
-  });
+  const shuttleNames = [
+    ["Bani", "MM-001"],
+    ["Evandi", "MM-002"],
+    ["TF", "MM-003"],
+  ];
+  const shuttles = await Promise.all(shuttleNames.map(([name, plateNumber]) => prisma.shuttle.upsert({
+    where: { plateNumber },
+    update: { name, currentRouteId: route.id },
+    create: { name, plateNumber, status: "inactive", currentRouteId: route.id },
+  })));
 
+  const shuttle = shuttles[0];
   const existingLocation = await prisma.shuttleLocation.findFirst({ where: { shuttleId: shuttle.id } });
   if (!existingLocation) {
     await prisma.shuttleLocation.create({

@@ -16,7 +16,7 @@ function Login() {
     }
 
     login(response);
-    navigate("/dashboard", { replace: true });
+    navigate(response.user.role === "driver" ? "/driver-dashboard" : response.user.role === "admin" || response.user.role === "representative" ? "/representative" : "/dashboard", { replace: true });
   };
 
   return (

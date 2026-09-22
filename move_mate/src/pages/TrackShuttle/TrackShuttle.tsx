@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { getLocationHistory, getRouteStops, getShuttles, type ApiShuttle, type ApiStop } from "../../services/transitApi";
+import { Link, useSearchParams } from "react-router-dom";
+import { getLocationHistory, getRouteStops, getShuttleEta, getShuttles, type ApiEta, type ApiShuttle, type ApiStop } from "../../services/transitApi";
+import MoveMateMap from "../../components/map/MoveMateMap";
 
 type Shuttle = {
   id: number;
@@ -13,6 +14,7 @@ type Shuttle = {
   latitude: number | null;
   longitude: number | null;
   speedKmh: number | null;
+  recordedAt: string | null;
 };
 
 function TrackShuttle() {
@@ -21,6 +23,8 @@ function TrackShuttle() {
   const [error, setError] = useState("");
   const [history, setHistory] = useState<Array<{ id: number; place_name: string | null; speed_kmh: number | null; recorded_at: string }>>([]);
   const [stops, setStops] = useState<ApiStop[]>([]);
+  const [eta, setEta] = useState<ApiEta | null>(null);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     getShuttles()
@@ -36,12 +40,15 @@ function TrackShuttle() {
           latitude: item.latitude,
           longitude: item.longitude,
           speedKmh: item.speed_kmh || null,
+          recordedAt: item.recorded_at,
         }));
         setShuttles(mapped);
-        setSelectedShuttle((current) => current || mapped[0]?.name || "");
+        const requestedShuttle = searchParams.get("shuttle");
+        const requested = mapped.find((item) => String(item.id) === requestedShuttle);
+        setSelectedShuttle((current) => current || requested?.name || mapped[0]?.name || "");
       })
       .catch((requestError: Error) => setError(requestError.message));
-  }, []);
+  }, [searchParams]);
 
   const shuttle = shuttles.find((item) => item.name === selectedShuttle);
 
@@ -49,7 +56,8 @@ function TrackShuttle() {
     if (!shuttle) return;
     getLocationHistory(shuttle.id).then(setHistory).catch((requestError: Error) => setError(requestError.message));
     if (shuttle.routeId) getRouteStops(shuttle.routeId).then(setStops).catch((requestError: Error) => setError(requestError.message));
-  }, [shuttle]);
+    getShuttleEta(shuttle.id).then(setEta).catch(() => setEta(null));
+  }, [shuttle?.id, shuttle?.routeId]);
 
   const nearestStop = shuttle && stops.length && shuttle.latitude !== null && shuttle.longitude !== null
     ? stops.reduce((nearest, stop) => {
@@ -57,9 +65,11 @@ function TrackShuttle() {
       return !nearest || distance < nearest.distance ? { stop, distance } : nearest;
     }, null as { stop: ApiStop; distance: number } | null)
     : null;
-  const estimatedMinutes = nearestStop && shuttle?.speedKmh && shuttle.speedKmh > 0
+  const fallbackEstimatedMinutes = nearestStop && shuttle?.speedKmh && shuttle.speedKmh > 0
     ? Math.max(1, Math.round((nearestStop.distance / shuttle.speedKmh) * 60))
     : null;
+  const estimatedMinutes = eta?.estimated_minutes ?? fallbackEstimatedMinutes;
+  const displayedNextStop = eta?.next_stop?.name || nearestStop?.stop.name || shuttle.nextStop;
 
   if (error) {
     return <section className="mx-auto w-full max-w-6xl px-4 py-10"><p className="rounded-md bg-red-50 p-4 text-sm text-red-700" role="alert">{error}</p></section>;
@@ -88,7 +98,7 @@ function TrackShuttle() {
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Selected shuttle</p><p className="mt-2 text-lg font-semibold text-slate-900">{shuttle.name}</p></div>
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Current location</p><p className="mt-2 text-lg font-semibold text-slate-900">{shuttle.location}</p></div>
-        <div className="rounded-lg border border-teal-100 bg-teal-50 p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal-700">Estimated arrival</p><p className="mt-2 text-lg font-semibold text-teal-900">{estimatedMinutes ? `${estimatedMinutes} minutes` : "Waiting for GPS speed"}</p></div>
+          <div className="rounded-lg border border-teal-100 bg-teal-50 p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal-700">Estimated arrival</p><p className="mt-2 text-lg font-semibold text-teal-900">{estimatedMinutes ? `${estimatedMinutes} minutes` : "Waiting for GPS"}</p><p className="mt-1 text-xs text-teal-800">Next stop: {displayedNextStop}</p></div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[0.7fr_1.3fr]">
@@ -109,21 +119,16 @@ function TrackShuttle() {
             <div className="mt-5 space-y-5">
               <div className="flex gap-3"><span className="mt-1 h-3 w-3 rounded-full bg-teal-700 ring-4 ring-teal-100" /><div><p className="text-sm font-semibold text-slate-900">{shuttle.location}</p><p className="text-xs text-slate-500">Current location</p></div></div>
               <div className="ml-1.5 h-8 border-l-2 border-dashed border-teal-200" />
-              <div className="flex gap-3"><span className="mt-1 h-3 w-3 rounded-full border-2 border-teal-600 bg-white" /><div><p className="text-sm font-semibold text-slate-900">{nearestStop?.stop.name || shuttle.nextStop}</p><p className="text-xs text-slate-500">{estimatedMinutes ? `Estimated · ${estimatedMinutes} min away` : "Waiting for a GPS update"}</p></div></div>
+              <div className="flex gap-3"><span className="mt-1 h-3 w-3 rounded-full border-2 border-teal-600 bg-white" /><div><p className="text-sm font-semibold text-slate-900">{displayedNextStop}</p><p className="text-xs text-slate-500">{estimatedMinutes ? `Estimated · ${estimatedMinutes} min away` : "Waiting for a GPS update"}</p></div></div>
             </div>
           </div>
         </div>
 
-        <div className="relative min-h-[27rem] overflow-hidden rounded-lg border border-teal-100 bg-[#dceeed] p-5 shadow-sm sm:p-7">
-          <div className="absolute inset-0 opacity-80" style={{ backgroundImage: "linear-gradient(32deg, transparent 45%, rgba(255,255,255,.85) 46%, rgba(255,255,255,.85) 52%, transparent 53%), linear-gradient(145deg, transparent 42%, rgba(186,219,215,.95) 43%, rgba(186,219,215,.95) 59%, transparent 60%)" }} />
-          <div className="absolute left-[22%] top-[30%] h-4 w-4 rounded-full border-2 border-white bg-teal-700 shadow-[0_0_0_6px_rgba(0,125,123,0.18)]" />
-          <div className="absolute right-[25%] top-[55%] h-4 w-4 rounded-full border-2 border-white bg-[#ed9d36] shadow-[0_0_0_6px_rgba(237,157,54,0.2)]" />
-          <div className="relative z-[1] flex h-full min-h-[23rem] flex-col justify-between">
-            <div className="flex items-center justify-between gap-4"><span className="rounded-md bg-white/90 px-3 py-2 text-xs font-semibold text-slate-700">Campus map</span><span className="rounded-md bg-slate-900/80 px-3 py-2 text-xs font-semibold text-white">Updated just now</span></div>
-            <div className="ml-auto w-full max-w-sm rounded-lg bg-white/95 p-5 shadow-lg">
-              <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-semibold text-teal-800">{shuttle.name}</p><p className="mt-2 text-4xl font-semibold tracking-tight text-slate-900">{estimatedMinutes ?? "--"}<span className="ml-1 text-lg font-medium text-slate-500">{estimatedMinutes ? "min" : "ETA"}</span></p><p className="mt-1 text-sm text-slate-600">until {nearestStop?.stop.name || shuttle.nextStop}</p></div><div className="h-10 w-10 rounded-full bg-teal-100 text-center text-lg leading-10">↗</div></div>
-              <Link className="mt-5 block border-t border-slate-100 pt-4 text-sm font-semibold text-teal-700 hover:text-teal-900" to="/routes">See this route details →</Link>
-            </div>
+        <div className="min-h-[27rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <MoveMateMap shuttle={{ name: shuttle.name, latitude: shuttle.latitude, longitude: shuttle.longitude, recordedAt: shuttle.recordedAt }} stops={stops} />
+          <div className="flex items-center justify-between gap-4 border-t border-slate-100 bg-white px-5 py-4">
+            <div><p className="text-sm font-semibold text-teal-800">{shuttle.name}</p><p className="mt-1 text-sm text-slate-600">Until {displayedNextStop}</p></div>
+            <Link className="text-sm font-semibold text-teal-700 hover:text-teal-900" to="/routes">Route details →</Link>
           </div>
         </div>
       </div>

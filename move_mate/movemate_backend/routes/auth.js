@@ -86,7 +86,8 @@ router.post("/register", async (req, res) => {
  * /api/auth/login:
  *   post:
  *     tags: [Authentication]
- *     summary: Log in
+ *     summary: Log in as a student, driver, representative, or admin
+ *     description: The account role is read from the stored user record. Drivers do not select a role during login.
  *     requestBody:
  *       required: true
  *       content:

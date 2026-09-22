@@ -22,12 +22,15 @@ function Sidebar() {
         <NavLink className={({ isActive }) => `rounded-md px-3 py-2 text-sm font-semibold transition ${isActive ? "bg-teal-50 text-[#007d7b]" : "text-slate-600 hover:bg-slate-50 hover:text-[#007d7b]"}`} to="/dashboard">Dashboard</NavLink>
         {user?.role === "representative" || user?.role === "admin" ? (
           <NavLink className={({ isActive }) => `rounded-md px-3 py-2 text-sm font-semibold transition ${isActive ? "bg-teal-50 text-[#007d7b]" : "text-slate-600 hover:bg-slate-50 hover:text-[#007d7b]"}`} to="/representative">Operations</NavLink>
+        ) : user?.role === "driver" ? (
+          <NavLink className={({ isActive }) => `rounded-md px-3 py-2 text-sm font-semibold transition ${isActive ? "bg-teal-50 text-[#007d7b]" : "text-slate-600 hover:bg-slate-50 hover:text-[#007d7b]"}`} to="/driver-dashboard">Driver Dashboard</NavLink>
         ) : (
           <>
             <NavLink className={({ isActive }) => `rounded-md px-3 py-2 text-sm font-semibold transition ${isActive ? "bg-teal-50 text-[#007d7b]" : "text-slate-600 hover:bg-slate-50 hover:text-[#007d7b]"}`} to="/track-shuttle">Track Shuttle</NavLink>
             <NavLink className={({ isActive }) => `rounded-md px-3 py-2 text-sm font-semibold transition ${isActive ? "bg-teal-50 text-[#007d7b]" : "text-slate-600 hover:bg-slate-50 hover:text-[#007d7b]"}`} to="/notifications">Notifications</NavLink>
           </>
         )}
+        <NavLink className={({ isActive }) => `rounded-md px-3 py-2 text-sm font-semibold transition ${isActive ? "bg-teal-50 text-[#007d7b]" : "text-slate-600 hover:bg-slate-50 hover:text-[#007d7b]"}`} to="/bus-status">Bus Status</NavLink>
         <NavLink className={({ isActive }) => `rounded-md px-3 py-2 text-sm font-semibold transition ${isActive ? "bg-teal-50 text-[#007d7b]" : "text-slate-600 hover:bg-slate-50 hover:text-[#007d7b]"}`} to="/routes">Routes</NavLink>
         <NavLink className={({ isActive }) => `rounded-md px-3 py-2 text-sm font-semibold transition ${isActive ? "bg-teal-50 text-[#007d7b]" : "text-slate-600 hover:bg-slate-50 hover:text-[#007d7b]"}`} to="/profile">Profile</NavLink>
         </nav>

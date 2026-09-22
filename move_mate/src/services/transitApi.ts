@@ -13,7 +13,15 @@ export type ApiShuttle = {
   place_name: string | null;
   recorded_at: string | null;
   speed_kmh?: number | null;
+  driver_id?: number | null;
+  driver_name?: string | null;
+  driver_email?: string | null;
+  driver_phone?: string | null;
+  configured_status?: string;
 };
+
+export type ApiDriver = { id: number; name: string; email: string; role: string };
+export type ApiEta = { shuttle_id: number; next_stop: { id: number; name: string; latitude: number; longitude: number } | null; distance_km?: number; estimated_minutes: number | null; speed_kmh?: number };
 
 export type ApiRoute = {
   id: number;
@@ -62,6 +70,44 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export async function getShuttles() {
   const response = await request<{ shuttles: ApiShuttle[] }>("/api/shuttles");
   return response.shuttles;
+}
+
+export async function getDrivers() {
+  const response = await request<{ drivers: ApiDriver[] }>("/api/users/drivers");
+  return response.drivers;
+}
+
+export async function createDriver(input: { name: string; email: string; password: string }) {
+  const response = await request<{ user: ApiDriver }>("/api/users/admin/create", {
+    method: "POST",
+    body: JSON.stringify({ ...input, role: "driver" }),
+  });
+  return response.user;
+}
+
+export async function assignDriver(shuttleId: number, input: { driver_id: number; driver_phone: string }) {
+  const response = await request<{ shuttle: ApiShuttle }>(`/api/shuttles/${shuttleId}/assignment`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  return response.shuttle;
+}
+
+export async function getAssignedShuttle() {
+  const response = await request<{ shuttle: ApiShuttle }>("/api/shuttles/assigned/me");
+  return response.shuttle;
+}
+
+export async function sendDriverLocation(input: { latitude: number; longitude: number; accuracy: number; timestamp: string }) {
+  const response = await request<{ location: { recorded_at: string } }>("/api/locations", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return response.location;
+}
+
+export async function getShuttleEta(shuttleId: number) {
+  return request<ApiEta>(`/api/shuttles/${shuttleId}/eta`);
 }
 
 export async function getRoutes() {

@@ -14,6 +14,7 @@ model User {
   role         String         @default("student")
   createdAt    DateTime       @default(now()) @map("created_at")
   notifications Notification[]
+  assignedShuttles Shuttle[]  @relation("ShuttleDriver")
 
   @@map("users")
 }
@@ -62,8 +63,11 @@ model Shuttle {
   plateNumber   String?           @unique @map("plate_number")
   status        String            @default("inactive")
   currentRouteId Int?             @map("current_route_id")
+  driverId      Int?              @map("driver_id")
+  driverPhone   String?           @map("driver_phone")
   updatedAt     DateTime          @default(now()) @updatedAt @map("updated_at")
   currentRoute  ShuttleRoute?     @relation(fields: [currentRouteId], references: [id], onDelete: SetNull)
+  driver        User?             @relation("ShuttleDriver", fields: [driverId], references: [id], onDelete: SetNull)
   locations     ShuttleLocation[]
   trips         Trip[]
 
@@ -77,6 +81,7 @@ model ShuttleLocation {
   longitude  Float
   placeName  String?  @map("place_name")
   speedKmh   Float?   @map("speed_kmh")
+  accuracyMeters Float? @map("accuracy_meters")
   recordedAt DateTime @default(now()) @map("recorded_at")
   shuttle    Shuttle  @relation(fields: [shuttleId], references: [id], onDelete: Cascade)
 

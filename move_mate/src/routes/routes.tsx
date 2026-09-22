@@ -10,6 +10,8 @@ import TrackShuttle from "../pages/TrackShuttle/TrackShuttle";
 import Notifications from "../pages/Notifications/Notifications";
 import Profile from "../pages/Profile/Profile";
 import Representative from "../pages/Representative/Representative";
+import BusStatus from "../pages/BusStatus/BusStatus";
+import DriverDashboard from "../pages/DriverDashboard/DriverDashboard";
 
 export type AppRouteDefinition = {
   path: string;
@@ -23,6 +25,8 @@ const routes: AppRouteDefinition[] = [
   { path: "/about", element: <About />, isProtected: false },
   { path: "/contact", element: <Contact />, isProtected: false },
   { path: "/track-shuttle", element: <TrackShuttle />, isProtected: true },
+  { path: "/bus-status", element: <BusStatus />, isProtected: true },
+  { path: "/driver-dashboard", element: <DriverDashboard />, isProtected: true },
   {
     path: "/login",
     element: <Login />,

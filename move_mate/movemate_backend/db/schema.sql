@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS shuttles (
   plate_number VARCHAR(50) UNIQUE,
   status VARCHAR(30) NOT NULL DEFAULT 'inactive',
   current_route_id INTEGER REFERENCES shuttle_routes(id) ON DELETE SET NULL,
+  driver_id INTEGER UNIQUE REFERENCES users(id) ON DELETE SET NULL,
+  driver_phone VARCHAR(30),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -51,6 +53,7 @@ CREATE TABLE IF NOT EXISTS shuttle_locations (
   longitude DOUBLE PRECISION NOT NULL,
   place_name VARCHAR(200),
   speed_kmh DOUBLE PRECISION,
+  accuracy_meters DOUBLE PRECISION,
   recorded_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

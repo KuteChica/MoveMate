@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { getShuttles, type ApiShuttle } from "../../services/transitApi";
 
@@ -15,6 +15,9 @@ function Dashboard() {
   const { user } = useAuth();
   const [shuttle, setShuttle] = useState<ApiShuttle | null>(null);
   const [greeting, setGreeting] = useState<string>(getGreeting());
+
+  if (user?.role === "driver") return <Navigate to="/driver-dashboard" replace />;
+  if (user?.role === "admin" || user?.role === "representative") return <Navigate to="/representative" replace />;
 
   useEffect(() => {
     getShuttles().then((shuttles) => setShuttle(shuttles[0] || null)).catch(() => setShuttle(null));

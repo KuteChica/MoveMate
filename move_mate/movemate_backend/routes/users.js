@@ -45,6 +45,26 @@ router.get("/", protect, authorize("admin"), async (req, res) => {
 
 /**
  * @swagger
+ * /api/users/drivers:
+ *   get:
+ *     tags: [Admin]
+ *     summary: List driver accounts for shuttle assignment
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: Driver accounts }
+ *       403: { description: Admin access required }
+ */
+router.get("/drivers", protect, authorize("admin"), async (req, res) => {
+  const drivers = await prisma.user.findMany({
+    where: { role: "driver" },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, email: true, role: true },
+  });
+  res.json({ drivers });
+});
+
+/**
+ * @swagger
  * /api/users/me:
  *   patch:
  *     tags: [Users]

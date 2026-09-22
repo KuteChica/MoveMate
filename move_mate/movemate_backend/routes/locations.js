@@ -9,7 +9,7 @@ const router = express.Router();
  * /api/locations:
  *   post:
  *     tags: [Locations]
- *     summary: Record a shuttle GPS location
+ *     summary: Record the authenticated driver's GPS location for their assigned shuttle
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
  *       required: true
@@ -17,11 +17,12 @@ const router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [shuttle_id, latitude, longitude]
+ *             required: [latitude, longitude]
  *             properties:
- *               shuttle_id: { type: integer }
  *               latitude: { type: number, format: double, minimum: -90, maximum: 90 }
  *               longitude: { type: number, format: double, minimum: -180, maximum: 180 }
+ *               accuracy: { type: number, format: double, example: 12.5 }
+ *               timestamp: { type: string, format: date-time }
  *               place_name: { type: string }
  *               speed_kmh: { type: number, format: double }
  *     responses:
@@ -29,13 +30,13 @@ const router = express.Router();
  *       400: { description: Invalid coordinates }
  *       404: { description: Shuttle not found }
  */
-router.post("/", protect, authorize("driver", "admin"), async (req, res) => {
+router.post("/", protect, authorize("driver"), async (req, res) => {
   try {
-    const { shuttle_id, latitude, longitude, place_name = null, speed_kmh = null } = req.body;
+    const { latitude, longitude, accuracy = null, timestamp = null, place_name = null, speed_kmh = null } = req.body;
 
-    if (!shuttle_id || latitude === undefined || longitude === undefined) {
+    if (latitude === undefined || longitude === undefined) {
       return res.status(400).json({
-        message: "shuttle_id, latitude and longitude are required."
+        message: "latitude and longitude are required."
       });
     }
 
@@ -46,29 +47,35 @@ router.post("/", protect, authorize("driver", "admin"), async (req, res) => {
       return res.status(400).json({ message: "Invalid GPS coordinates." });
     }
 
-    const shuttleId = Number(shuttle_id);
-    const shuttle = await prisma.shuttle.findUnique({ where: { id: shuttleId } });
+    const shuttle = await prisma.shuttle.findFirst({ where: { driverId: Number(req.user.id) } });
     if (!shuttle) {
-      return res.status(404).json({ message: "Shuttle not found." });
+      return res.status(404).json({ message: "No shuttle is assigned to this driver." });
     }
+
+    const accuracyMeters = accuracy === null ? null : Number(accuracy);
+    if (accuracyMeters !== null && (!Number.isFinite(accuracyMeters) || accuracyMeters < 0)) return res.status(400).json({ message: "Invalid GPS accuracy." });
+    const recordedAt = timestamp ? new Date(timestamp) : new Date();
+    if (Number.isNaN(recordedAt.getTime())) return res.status(400).json({ message: "Invalid GPS timestamp." });
 
     const location = await prisma.$transaction(async (tx) => {
       const createdLocation = await tx.shuttleLocation.create({
         data: {
-          shuttleId,
+          shuttleId: shuttle.id,
           latitude: lat,
           longitude: lon,
           placeName: place_name,
           speedKmh: speed_kmh === null ? null : Number(speed_kmh),
+          accuracyMeters,
+          recordedAt,
         },
       });
-      await tx.shuttle.update({ where: { id: shuttleId }, data: { status: "active" } });
+      await tx.shuttle.update({ where: { id: shuttle.id }, data: { status: "active" } });
       return createdLocation;
     });
 
     res.status(201).json({
       message: "Location recorded.",
-      location: { ...location, id: Number(location.id), shuttle_id: location.shuttleId, place_name: location.placeName, speed_kmh: location.speedKmh, recorded_at: location.recordedAt }
+      location: { ...location, id: Number(location.id), shuttle_id: location.shuttleId, place_name: location.placeName, speed_kmh: location.speedKmh, accuracy: location.accuracyMeters, recorded_at: location.recordedAt }
     });
   } catch (error) {
     console.error(error);
@@ -104,6 +111,7 @@ router.get("/:shuttleId/history", protect, async (req, res) => {
       longitude: location.longitude,
       place_name: location.placeName,
       speed_kmh: location.speedKmh,
+      accuracy: location.accuracyMeters,
       recorded_at: location.recordedAt,
     })) });
   } catch (error) {

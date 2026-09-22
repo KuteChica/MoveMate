@@ -30,20 +30,23 @@ WHERE r.name = 'Main Campus Route'
     WHERE rs.route_id = r.id AND rs.stop_id = s.id
   );
 
+UPDATE shuttles
+SET name = 'Bani'
+WHERE plate_number = 'MM-001' AND name = 'MoveMate Shuttle 1';
+
 INSERT INTO shuttles (name, plate_number, status, current_route_id)
-SELECT 'MoveMate Shuttle 1', 'MM-001', 'active', r.id
+SELECT v.name, v.plate_number, 'inactive', r.id
 FROM shuttle_routes r
+CROSS JOIN (VALUES ('Bani', 'MM-001'), ('Evandi', 'MM-002'), ('TF', 'MM-003')) AS v(name, plate_number)
 WHERE r.name = 'Main Campus Route'
-  AND NOT EXISTS (
-    SELECT 1 FROM shuttles WHERE plate_number = 'MM-001'
-  );
+  AND NOT EXISTS (SELECT 1 FROM shuttles WHERE shuttles.name = v.name);
 
 -- The application can accept a driver's real GPS position through POST /api/locations.
 -- This demo location is intentionally only seed data for testing.
 INSERT INTO shuttle_locations (shuttle_id, latitude, longitude, place_name, speed_kmh)
-SELECT s.id, 5.6508, -0.1869, 'Legon Hall', 20
+SELECT s.id, 5.6508, -0.1869, 'Legon Hall', 20, NULL
 FROM shuttles s
-WHERE s.plate_number = 'MM-001'
+WHERE s.name = 'Bani'
   AND NOT EXISTS (
     SELECT 1 FROM shuttle_locations sl WHERE sl.shuttle_id = s.id
   );

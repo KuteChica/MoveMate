@@ -6,13 +6,19 @@ const router = express.Router();
 
 function serializeShuttle(shuttle) {
   const location = shuttle.locations?.[0];
+  const locationIsFresh = location?.recordedAt && Date.now() - new Date(location.recordedAt).getTime() <= 120000;
   return {
     id: shuttle.id,
     name: shuttle.name,
     plate_number: shuttle.plateNumber,
-    status: shuttle.status,
+    status: shuttle.status === "maintenance" ? "maintenance" : locationIsFresh ? "active" : "inactive",
+    configured_status: shuttle.status,
     current_route_id: shuttle.currentRouteId,
     route_name: shuttle.currentRoute?.name || null,
+    driver_id: shuttle.driverId,
+    driver_name: shuttle.driver?.name || null,
+    driver_email: shuttle.driver?.email || null,
+    driver_phone: shuttle.driverPhone,
     latitude: location?.latitude || null,
     longitude: location?.longitude || null,
     place_name: location?.placeName || null,
@@ -38,6 +44,7 @@ router.get("/", protect, async (req, res) => {
       orderBy: { id: "asc" },
       include: {
         currentRoute: { select: { name: true } },
+        driver: { select: { id: true, name: true, email: true } },
         locations: { orderBy: { recordedAt: "desc" }, take: 1 },
       },
     });
@@ -46,6 +53,81 @@ router.get("/", protect, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Could not load shuttles." });
+  }
+});
+
+/**
+ * @swagger
+ * /api/shuttles/assigned/me:
+ *   get:
+ *     tags: [Driver GPS]
+ *     summary: Get the shuttle assigned to the authenticated driver
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: Assigned shuttle }
+ *       403: { description: Driver access required }
+ *       404: { description: No shuttle assignment }
+ */
+router.get("/assigned/me", protect, authorize("driver"), async (req, res) => {
+  const shuttle = await prisma.shuttle.findFirst({
+    where: { driverId: Number(req.user.id) },
+    include: {
+      currentRoute: { select: { id: true, name: true } },
+      driver: { select: { id: true, name: true, email: true } },
+      locations: { orderBy: { recordedAt: "desc" }, take: 1 },
+    },
+  });
+  if (!shuttle) return res.status(404).json({ message: "No shuttle is assigned to this driver." });
+  res.json({ shuttle: { ...serializeShuttle(shuttle), route_id: shuttle.currentRoute?.id || null } });
+});
+
+/**
+ * @swagger
+ * /api/shuttles/{id}/assignment:
+ *   patch:
+ *     tags: [Admin]
+ *     summary: Assign a driver and phone number to a shuttle
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [driver_id, driver_phone]
+ *             properties:
+ *               driver_id: { type: integer, example: 2 }
+ *               driver_phone: { type: string, example: "0240000000" }
+ *     responses:
+ *       200: { description: Assignment updated }
+ *       400: { description: Invalid driver assignment }
+ *       403: { description: Admin access required }
+ */
+router.patch("/:id/assignment", protect, authorize("admin"), async (req, res) => {
+  try {
+    const driverId = Number(req.body.driver_id);
+    const driverPhone = String(req.body.driver_phone || "").trim();
+    if (!Number.isInteger(driverId) || !driverPhone) return res.status(400).json({ message: "driver_id and driver_phone are required." });
+
+    const driver = await prisma.user.findUnique({ where: { id: driverId } });
+    if (!driver || driver.role !== "driver") return res.status(400).json({ message: "The selected user is not a driver." });
+
+    const shuttle = await prisma.shuttle.update({
+      where: { id: Number(req.params.id) },
+      data: { driverId, driverPhone },
+      include: { currentRoute: { select: { name: true } }, driver: { select: { id: true, name: true, email: true } }, locations: { orderBy: { recordedAt: "desc" }, take: 1 } },
+    });
+    res.json({ shuttle: serializeShuttle(shuttle) });
+  } catch (error) {
+    if (error.code === "P2002") return res.status(409).json({ message: "That driver is already assigned to another shuttle." });
+    if (error.code === "P2025") return res.status(404).json({ message: "Shuttle not found." });
+    console.error(error);
+    res.status(500).json({ message: "Could not assign driver." });
   }
 });
 
@@ -71,6 +153,7 @@ router.get("/:id", protect, async (req, res) => {
       where: { id: Number(req.params.id) },
       include: {
         currentRoute: { select: { id: true, name: true } },
+        driver: { select: { id: true, name: true, email: true } },
         locations: { orderBy: { recordedAt: "desc" }, take: 1 },
       },
     });
@@ -86,6 +169,43 @@ router.get("/:id", protect, async (req, res) => {
     console.error(error);
     res.status(500).json({ message: "Could not load shuttle." });
   }
+});
+
+/**
+ * @swagger
+ * /api/shuttles/{id}/eta:
+ *   get:
+ *     tags: [Student Tracking]
+ *     summary: Get a simple ETA to the nearest route stop
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200: { description: Estimated arrival information }
+ *       404: { description: Shuttle or GPS location not found }
+ */
+router.get("/:id/eta", protect, async (req, res) => {
+  const shuttle = await prisma.shuttle.findUnique({
+    where: { id: Number(req.params.id) },
+    include: { locations: { orderBy: { recordedAt: "desc" }, take: 1 }, currentRoute: { include: { stops: { orderBy: { stopOrder: "asc" }, include: { stop: true } } } } },
+  });
+  const location = shuttle?.locations?.[0];
+  if (!shuttle || !location) return res.status(404).json({ message: "Shuttle GPS location is not available." });
+  const stops = shuttle.currentRoute?.stops || [];
+  if (!stops.length) return res.json({ shuttle_id: shuttle.id, next_stop: null, estimated_minutes: null, message: "No route stops are configured." });
+  const toRadians = (value) => value * Math.PI / 180;
+  const distanceKm = (stop) => {
+    const lat = toRadians(stop.stop.latitude - location.latitude);
+    const lon = toRadians(stop.stop.longitude - location.longitude);
+    const a = Math.sin(lat / 2) ** 2 + Math.cos(toRadians(location.latitude)) * Math.cos(toRadians(stop.stop.latitude)) * Math.sin(lon / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+  const nextStop = stops.reduce((closest, item) => !closest || distanceKm(item) < closest.distance ? { item, distance: distanceKm(item) } : closest, null);
+  const speed = Number(location.speedKmh) > 2 ? Number(location.speedKmh) : 20;
+  res.json({ shuttle_id: shuttle.id, next_stop: { id: nextStop.item.stop.id, name: nextStop.item.stop.name, latitude: nextStop.item.stop.latitude, longitude: nextStop.item.stop.longitude }, distance_km: Number(nextStop.distance.toFixed(2)), estimated_minutes: Math.max(1, Math.ceil((nextStop.distance / speed) * 60)), speed_kmh: speed });
 });
 
 /**
