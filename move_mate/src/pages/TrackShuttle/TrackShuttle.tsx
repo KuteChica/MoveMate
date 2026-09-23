@@ -93,17 +93,10 @@ function TrackShuttle() {
     ? Math.max(1, Math.round((nearestStop.distance / shuttle.speedKmh) * 60))
     : null;
   const estimatedMinutes = liveEstimatedMinutes ?? eta?.estimated_minutes ?? fallbackEstimatedMinutes;
-  const studentNearestStop = studentLocation && stops.length
-    ? stops.reduce((nearest, stop) => {
-      const distance = distanceInKm(studentLocation, [stop.latitude, stop.longitude]);
-      return !nearest || distance < nearest.distance ? { stop, distance } : nearest;
-    }, null as { stop: ApiStop; distance: number } | null)
-    : null;
-  const displayedNextStop = studentNearestStop?.stop.name || eta?.next_stop?.name || nearestStop?.stop.name || shuttle?.nextStop || "Next stop unavailable";
   const liveNotice = liveDistance !== null && liveDistance <= 0.25
-    ? `${shuttle?.name || "The shuttle"} is currently at ${shuttle?.location || "an unknown location"} and is near you${studentNearestStop ? `, close to ${studentNearestStop.stop.name}` : ""}.`
+    ? `${shuttle?.name || "The shuttle"} is currently at ${shuttle?.location || "an unknown location"} and is near you.`
     : liveDistance !== null && liveDistance <= 1
-      ? `${shuttle?.name || "The shuttle"} is currently at ${shuttle?.location || "an unknown location"} and is approaching you${studentNearestStop ? ` near ${studentNearestStop.stop.name}` : ""}.`
+      ? `${shuttle?.name || "The shuttle"} is currently at ${shuttle?.location || "an unknown location"} and is approaching you.`
       : `${shuttle?.name || "The shuttle"} is currently at ${shuttle?.location || "an unknown location"}.`;
 
   if (error) {
@@ -127,10 +120,18 @@ function TrackShuttle() {
         </div>
       </div>
 
-      <div className="mb-5 grid gap-3 sm:mb-6 sm:grid-cols-3">
+      <div className="mb-5 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:mb-6 sm:p-5">
+        <label className="text-sm font-semibold text-slate-800">Choose a shuttle
+          <select className="mt-3 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-900 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-100" value={selectedShuttleId} onChange={(event) => setSelectedShuttleId(event.target.value)}>
+            {shuttles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        </label>
+      </div>
+
+      <div className="mb-5 grid gap-3 sm:mb-6 sm:grid-cols-2">
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Selected shuttle</p><p className="mt-2 text-lg font-semibold text-slate-900">{shuttle.name}</p></div>
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Current location</p><p className="mt-2 text-lg font-semibold text-slate-900">{shuttle.location}</p></div>
-          <div className="rounded-lg border border-teal-100 bg-teal-50 p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal-700">Estimated arrival</p><p className="mt-2 text-lg font-semibold text-teal-900">{estimatedMinutes ? `${estimatedMinutes} minutes` : "Waiting for GPS"}</p><p className="mt-1 text-xs text-teal-800">Next stop: {displayedNextStop}</p></div>
+        <div className="rounded-lg border border-teal-100 bg-teal-50 p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal-700">Estimated arrival</p><p className="mt-2 text-lg font-semibold text-teal-900">{estimatedMinutes ? `${estimatedMinutes} minutes` : "Waiting for GPS"}</p></div>
       </div>
 
       <div className="mb-5 rounded-lg border border-teal-100 bg-teal-50 p-4 text-sm leading-6 text-teal-950 sm:mb-6">
@@ -139,14 +140,9 @@ function TrackShuttle() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[0.7fr_1.3fr]">
-        <div className="space-y-5">
+        <div className="order-2 space-y-5 lg:order-1">
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <label className="text-sm font-semibold text-slate-800">Choose a shuttle
-              <select className="mt-3 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-900 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-100" value={selectedShuttleId} onChange={(event) => setSelectedShuttleId(event.target.value)}>
-                {shuttles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-              </select>
-            </label>
-            <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+            <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">Service status</span>
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${shuttle.status === "Delayed" ? "bg-amber-100 text-amber-800" : shuttle.status === "Approaching" ? "bg-teal-100 text-teal-800" : "bg-emerald-100 text-emerald-800"}`}>{shuttle.status}</span>
             </div>
@@ -155,16 +151,14 @@ function TrackShuttle() {
             <p className="text-sm font-semibold text-slate-900">Journey progress</p>
             <div className="mt-5 space-y-5">
               <div className="flex gap-3"><span className="mt-1 h-3 w-3 rounded-full bg-teal-700 ring-4 ring-teal-100" /><div><p className="text-sm font-semibold text-slate-900">{shuttle.location}</p><p className="text-xs text-slate-500">Current location</p></div></div>
-              <div className="ml-1.5 h-8 border-l-2 border-dashed border-teal-200" />
-              <div className="flex gap-3"><span className="mt-1 h-3 w-3 rounded-full border-2 border-teal-600 bg-white" /><div><p className="text-sm font-semibold text-slate-900">{displayedNextStop}</p><p className="text-xs text-slate-500">{estimatedMinutes ? `Estimated · ${estimatedMinutes} min away` : "Waiting for a GPS update"}</p></div></div>
             </div>
           </div>
         </div>
 
-        <div className="min-h-[22rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm sm:min-h-[27rem]">
+        <div className="order-1 min-h-[22rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm sm:min-h-[27rem] lg:order-2">
           <MoveMateMap shuttle={{ name: shuttle.name, latitude: shuttle.latitude, longitude: shuttle.longitude, recordedAt: shuttle.recordedAt }} stops={stops} onStudentLocationChange={setStudentLocation} />
           <div className="flex items-center justify-between gap-4 border-t border-slate-100 bg-white px-5 py-4">
-            <div><p className="text-sm font-semibold text-teal-800">{shuttle.name}</p><p className="mt-1 text-sm text-slate-600">Until {displayedNextStop}</p></div>
+            <div><p className="text-sm font-semibold text-teal-800">{shuttle.name}</p><p className="mt-1 text-sm text-slate-600">Live driver location</p></div>
           </div>
         </div>
       </div>
