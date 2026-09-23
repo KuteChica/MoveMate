@@ -98,7 +98,7 @@ export async function getAssignedShuttle() {
   return response.shuttle;
 }
 
-export async function sendDriverLocation(input: { latitude: number; longitude: number; accuracy: number; timestamp: string }) {
+export async function sendDriverLocation(input: { shuttle_id: number; latitude: number; longitude: number; accuracy: number; timestamp: string }) {
   const response = await request<{ location: { recorded_at: string } }>("/api/locations", {
     method: "POST",
     body: JSON.stringify(input),

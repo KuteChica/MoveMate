@@ -32,22 +32,23 @@ const router = express.Router();
  */
 router.post("/", protect, authorize("driver"), async (req, res) => {
   try {
-    const { latitude, longitude, accuracy = null, timestamp = null, place_name = null, speed_kmh = null } = req.body;
+    const { shuttle_id, latitude, longitude, accuracy = null, timestamp = null, place_name = null, speed_kmh = null } = req.body;
 
-    if (latitude === undefined || longitude === undefined) {
+    if (shuttle_id === undefined || latitude === undefined || longitude === undefined) {
       return res.status(400).json({
-        message: "latitude and longitude are required."
+        message: "shuttle_id, latitude and longitude are required."
       });
     }
 
     const lat = Number(latitude);
     const lon = Number(longitude);
+    const shuttleId = Number(shuttle_id);
 
-    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    if (!Number.isInteger(shuttleId) || !Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
       return res.status(400).json({ message: "Invalid GPS coordinates." });
     }
 
-    const shuttle = await prisma.shuttle.findFirst({ where: { driverId: Number(req.user.id) } });
+    const shuttle = await prisma.shuttle.findFirst({ where: { id: shuttleId, driverId: Number(req.user.id) } });
     if (!shuttle) {
       return res.status(404).json({ message: "No shuttle is assigned to this driver." });
     }

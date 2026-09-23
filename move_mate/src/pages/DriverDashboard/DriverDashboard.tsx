@@ -19,12 +19,8 @@ function DriverDashboard() {
   useEffect(() => {
     getShuttles()
       .then((items) => {
-        const assigned = items.filter((item) => item.driver_id === user?.id);
-        setAvailableShuttles(assigned);
-        const selected = assigned[0] || null;
-        setShuttle(selected);
-        if (selected?.current_route_id) return getRouteStops(selected.current_route_id).then(setStops);
-        return undefined;
+        setAvailableShuttles(items);
+        setShuttle(null);
       })
       .catch((requestError: Error) => setError(requestError.message));
 
@@ -34,6 +30,12 @@ function DriverDashboard() {
     };
   }, [user?.id]);
 
+  useEffect(() => {
+    setStops([]);
+    if (!shuttle?.current_route_id) return;
+    getRouteStops(shuttle.current_route_id).then(setStops).catch((requestError: Error) => setError(requestError.message));
+  }, [shuttle?.id, shuttle?.current_route_id]);
+
   if (user?.role !== "driver") return <Navigate to="/dashboard" replace />;
 
   const sendLatestPosition = async () => {
@@ -41,6 +43,7 @@ function DriverDashboard() {
     if (!current) return;
     try {
       await sendDriverLocation({
+        shuttle_id: shuttle.id,
         latitude: current.coords.latitude,
         longitude: current.coords.longitude,
         accuracy: current.coords.accuracy,
@@ -55,7 +58,11 @@ function DriverDashboard() {
   const startTracking = () => {
     setError("");
     if (!shuttle) {
-      setError("Select an assigned shuttle before starting GPS tracking.");
+      setError("Select the shuttle you are currently driving before starting GPS tracking.");
+      return;
+    }
+    if (shuttle.driver_id !== user?.id) {
+      setError("This shuttle is not assigned to your driver account. Ask an administrator to assign it first.");
       return;
     }
     if (!navigator.geolocation) {
@@ -89,7 +96,7 @@ function DriverDashboard() {
 
   const mapShuttle = position && shuttle
     ? { name: shuttle.name, latitude: position.latitude, longitude: position.longitude, recordedAt: new Date(position.timestamp).toISOString() }
-    : { name: shuttle?.name || "Assigned shuttle", latitude: shuttle?.latitude || null, longitude: shuttle?.longitude || null, recordedAt: shuttle?.recorded_at || null };
+    : { name: shuttle?.name || "Selected shuttle", latitude: shuttle?.latitude ?? null, longitude: shuttle?.longitude ?? null, recordedAt: shuttle?.recorded_at || null };
 
   return (
     <section className="mx-auto w-full max-w-6xl px-6 py-10">
@@ -99,8 +106,8 @@ function DriverDashboard() {
         <div className="space-y-5">
           <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <dl className="space-y-4 text-sm"><div><dt className="text-slate-500">Driver</dt><dd className="mt-1 text-lg font-semibold text-slate-900">{user.name}</dd></div><div><dt className="text-slate-500">Currently driving</dt><dd className="mt-1 text-lg font-semibold text-slate-900">{shuttle ? `${shuttle.name} Shuttle` : "No shuttle assigned"}</dd></div><div><dt className="text-slate-500">Assigned route</dt><dd className="mt-1 text-lg font-semibold text-slate-900">{shuttle?.route_name || "Not assigned"}</dd></div></dl>
-            {availableShuttles.length > 1 && <label className="mt-5 block border-t border-slate-100 pt-5 text-sm font-semibold text-slate-800">Choose the shuttle you are driving<select className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-900" value={shuttle?.id || ""} onChange={(event) => setShuttle(availableShuttles.find((item) => item.id === Number(event.target.value)) || null)}>{availableShuttles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
-            <div className="mt-6 border-t border-slate-100 pt-5"><p className="text-sm text-slate-500">GPS Status</p><p className={`mt-1 text-xl font-semibold ${gpsStatus === "Connected" ? "text-emerald-700" : "text-slate-700"}`}>{gpsStatus}</p><p className="mt-2 text-xs text-slate-500">Location is sent automatically while tracking is active.</p><div className="mt-4 flex gap-3"><button className="rounded-md bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={startTracking} disabled={!shuttle}>Start Tracking</button><button className="rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" onClick={stopTracking}>Stop Tracking</button></div></div>
+            <label className="mt-5 block border-t border-slate-100 pt-5 text-sm font-semibold text-slate-800">Choose the shuttle you are driving<select className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-900" value={shuttle?.id || ""} onChange={(event) => { stopTracking(); setShuttle(availableShuttles.find((item) => item.id === Number(event.target.value)) || null); }}><option value="">Select a shuttle</option>{availableShuttles.map((item) => <option key={item.id} value={item.id}>{item.name}{item.driver_id === user?.id ? " (assigned to you)" : " (needs admin assignment)"}</option>)}</select></label>
+            <div className="mt-6 border-t border-slate-100 pt-5"><p className="text-sm text-slate-500">GPS Status</p><p className={`mt-1 text-xl font-semibold ${gpsStatus === "Connected" ? "text-emerald-700" : "text-slate-700"}`}>{gpsStatus}</p><p className="mt-2 text-xs text-slate-500">Location is sent automatically while tracking is active.</p><div className="mt-4 flex gap-3"><button className="rounded-md bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={startTracking} disabled={!shuttle || shuttle.driver_id !== user?.id}>Start Tracking</button><button className="rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" onClick={stopTracking}>Stop Tracking</button></div></div>
           </div>
           {position && <p className="rounded-md bg-teal-50 p-4 text-sm text-teal-900">Accuracy: {Math.round(position.accuracy)} m · Updated {new Date(position.timestamp).toLocaleTimeString()}</p>}
           {error && <p className="rounded-md bg-red-50 p-4 text-sm text-red-700" role="alert">{error}</p>}

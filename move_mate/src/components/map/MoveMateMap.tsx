@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L, { type LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { ApiStop } from "../../services/transitApi";
@@ -30,6 +30,7 @@ function createMarkerIcon(color: string, symbol: string) {
 }
 
 const shuttleIcon = createMarkerIcon("#0f766e", "BUS");
+const studentIcon = createMarkerIcon("#1d4ed8", "YOU");
 const stopIcon = createMarkerIcon("#d97706", "•");
 
 function MapInteractionTracker({ interacted }: { interacted: React.MutableRefObject<boolean> }) {
@@ -130,7 +131,7 @@ function MoveMateMap({ shuttle, stops, showStudentLocation = true, onStudentLoca
             <Popup><strong>{shuttle.name}</strong><br />{shuttle.recordedAt ? `Updated ${new Date(shuttle.recordedAt).toLocaleTimeString()}` : "GPS update received"}</Popup>
           </Marker>
         )}
-        {showStudentLocation && studentLocation && <CircleMarker center={studentLocation} radius={8} pathOptions={{ color: "#1d4ed8", fillColor: "#60a5fa", fillOpacity: 1 }}><Popup>Your location</Popup></CircleMarker>}
+        {showStudentLocation && studentLocation && <Marker position={studentLocation} icon={studentIcon}><Popup>You are here</Popup></Marker>}
       </MapContainer>
       <div className="pointer-events-none absolute left-3 top-3 z-[1000] max-w-[calc(100%-1.5rem)] rounded-md bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-md">
         <p>{shuttlePosition ? "Shuttle GPS active" : "Waiting for shuttle GPS"}</p>
