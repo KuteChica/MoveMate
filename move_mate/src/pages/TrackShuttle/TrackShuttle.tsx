@@ -69,7 +69,7 @@ function TrackShuttle() {
     ? Math.max(1, Math.round((nearestStop.distance / shuttle.speedKmh) * 60))
     : null;
   const estimatedMinutes = eta?.estimated_minutes ?? fallbackEstimatedMinutes;
-  const displayedNextStop = eta?.next_stop?.name || nearestStop?.stop.name || shuttle.nextStop;
+  const displayedNextStop = eta?.next_stop?.name || nearestStop?.stop.name || shuttle?.nextStop || "Next stop unavailable";
 
   if (error) {
     return <section className="mx-auto w-full max-w-6xl px-4 py-10"><p className="rounded-md bg-red-50 p-4 text-sm text-red-700" role="alert">{error}</p></section>;

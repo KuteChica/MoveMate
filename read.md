@@ -684,8 +684,8 @@ return (
 <div>
 <button onClick={() => setCount(count + 1)}>Count: {count}</button>
 <ChildComponent /> <-- Re-renders when Parent re-renders
-</div>
+</div
 );
 }
 Email: admin@movemate.local
-Password: Admin@12345
+Pa:Admin@12345

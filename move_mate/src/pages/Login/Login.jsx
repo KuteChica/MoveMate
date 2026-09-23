@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Form from "../../components/Form";
 import useApi from "../../hooks/useApi";
@@ -8,6 +8,7 @@ function Login() {
   const { login } = useAuth();
   const { loading, isError, errMessage, successMessage, execute } = useApi();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (email, password) => {
     const response = await execute(() => loginRequest(email, password));
@@ -16,7 +17,10 @@ function Login() {
     }
 
     login(response);
-    navigate(response.user.role === "driver" ? "/driver-dashboard" : response.user.role === "admin" || response.user.role === "representative" ? "/representative" : "/dashboard", { replace: true });
+    const requestedPath = location.state?.from?.pathname;
+    const requestedSearch = location.state?.from?.search || "";
+    const defaultPath = response.user.role === "driver" ? "/driver-dashboard" : response.user.role === "admin" || response.user.role === "representative" ? "/representative" : "/dashboard";
+    navigate(requestedPath && response.user.role === "student" ? `${requestedPath}${requestedSearch}` : defaultPath, { replace: true });
   };
 
   return (
