@@ -7,12 +7,6 @@ const router = express.Router();
 function serializeShuttle(shuttle) {
   const location = shuttle.locations?.[0];
   const locationIsFresh = location?.recordedAt && Date.now() - new Date(location.recordedAt).getTime() <= 120000;
-  const nearestStop = location && shuttle.currentRoute?.stops?.length
-    ? shuttle.currentRoute.stops.reduce((nearest, routeStop) => {
-      const distance = Math.hypot((routeStop.stop.latitude - location.latitude) * 111, (routeStop.stop.longitude - location.longitude) * 111);
-      return !nearest || distance < nearest.distance ? { stop: routeStop.stop, distance } : nearest;
-    }, null)
-    : null;
   return {
     id: shuttle.id,
     name: shuttle.name,
@@ -27,7 +21,7 @@ function serializeShuttle(shuttle) {
     driver_phone: shuttle.driverPhone,
     latitude: location?.latitude ?? null,
     longitude: location?.longitude ?? null,
-    place_name: location?.placeName || nearestStop?.stop.name || null,
+    place_name: location?.placeName || null,
     speed_kmh: location?.speedKmh || null,
     recorded_at: location?.recordedAt || null,
     updated_at: shuttle.updatedAt,
@@ -49,7 +43,7 @@ router.get("/", protect, async (req, res) => {
     const shuttles = await prisma.shuttle.findMany({
       orderBy: { id: "asc" },
       include: {
-        currentRoute: { select: { name: true, stops: { include: { stop: true } } } },
+        currentRoute: { select: { name: true } },
         driver: { select: { id: true, name: true, email: true } },
         locations: { orderBy: { recordedAt: "desc" }, take: 1 },
       },
@@ -78,7 +72,7 @@ router.get("/assigned/me", protect, authorize("driver"), async (req, res) => {
   const shuttle = await prisma.shuttle.findFirst({
     where: { driverId: Number(req.user.id) },
     include: {
-      currentRoute: { select: { id: true, name: true, stops: { include: { stop: true } } } },
+      currentRoute: { select: { id: true, name: true } },
       driver: { select: { id: true, name: true, email: true } },
       locations: { orderBy: { recordedAt: "desc" }, take: 1 },
     },
@@ -126,7 +120,7 @@ router.patch("/:id/assignment", protect, authorize("admin"), async (req, res) =>
     const shuttle = await prisma.shuttle.update({
       where: { id: Number(req.params.id) },
       data: { driverId, driverPhone },
-      include: { currentRoute: { select: { name: true, stops: { include: { stop: true } } } }, driver: { select: { id: true, name: true, email: true } }, locations: { orderBy: { recordedAt: "desc" }, take: 1 } },
+      include: { currentRoute: { select: { name: true } }, driver: { select: { id: true, name: true, email: true } }, locations: { orderBy: { recordedAt: "desc" }, take: 1 } },
     });
     res.json({ shuttle: serializeShuttle(shuttle) });
   } catch (error) {
@@ -158,7 +152,7 @@ router.get("/:id", protect, async (req, res) => {
     const shuttle = await prisma.shuttle.findUnique({
       where: { id: Number(req.params.id) },
       include: {
-        currentRoute: { select: { id: true, name: true, stops: { include: { stop: true } } } },
+        currentRoute: { select: { id: true, name: true } },
         driver: { select: { id: true, name: true, email: true } },
         locations: { orderBy: { recordedAt: "desc" }, take: 1 },
       },

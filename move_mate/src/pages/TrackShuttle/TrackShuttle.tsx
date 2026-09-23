@@ -43,7 +43,7 @@ function TrackShuttle() {
         const mapped = items.map((item) => ({
           id: item.id,
           name: item.name,
-          location: item.place_name || "Location unavailable",
+          location: item.place_name || (item.latitude !== null && item.longitude !== null ? `GPS ${item.latitude.toFixed(5)}, ${item.longitude.toFixed(5)}` : "Location unavailable"),
           nextStop: item.route_name || "Next stop unavailable",
           minutesAway: 0,
           status: item.status === "maintenance" ? "Delayed" : item.status === "active" ? "Approaching" : "On route",

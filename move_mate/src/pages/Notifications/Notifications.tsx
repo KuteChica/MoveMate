@@ -26,7 +26,7 @@ function Notifications() {
         {shuttles.filter((shuttle) => shuttle.latitude !== null && shuttle.longitude !== null).map((shuttle) => (
           <article className="flex flex-col gap-2 px-5 py-5" key={`live-${shuttle.id}`}>
             <span className="w-fit rounded-full bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-800">Live shuttle update</span>
-            <h2 className="font-semibold text-slate-900">{shuttle.name} is currently near {shuttle.place_name || "an unnamed location"}</h2>
+            <h2 className="font-semibold text-slate-900">{shuttle.name} is currently {shuttle.place_name ? `at ${shuttle.place_name}` : `at GPS ${shuttle.latitude?.toFixed(5)}, ${shuttle.longitude?.toFixed(5)}`}</h2>
             <p className="text-sm text-slate-600">Last GPS update: {shuttle.recorded_at ? new Date(shuttle.recorded_at).toLocaleString() : "Waiting for GPS"}.</p>
           </article>
         ))}

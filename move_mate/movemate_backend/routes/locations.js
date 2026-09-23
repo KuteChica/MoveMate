@@ -3,6 +3,28 @@ const prisma = require("../database");
 const { protect, authorize } = require("../middleware/auth");
 
 const router = express.Router();
+const reverseGeocodeCache = new Map();
+
+async function reverseGeocode(latitude, longitude, shuttleId) {
+  const cached = reverseGeocodeCache.get(shuttleId);
+  if (cached && Date.now() - cached.updatedAt < 60000 && Math.hypot(cached.latitude - latitude, cached.longitude - longitude) < 0.001) {
+    return cached.placeName;
+  }
+
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
+      headers: { "User-Agent": "MoveMate/1.0 campus shuttle tracker" },
+    });
+    if (!response.ok) return null;
+    const result = await response.json();
+    const address = result.address || {};
+    const placeName = address.road || address.neighbourhood || address.suburb || address.city_district || result.display_name || null;
+    if (placeName) reverseGeocodeCache.set(shuttleId, { latitude, longitude, placeName, updatedAt: Date.now() });
+    return placeName;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * @swagger
@@ -57,6 +79,7 @@ router.post("/", protect, authorize("driver"), async (req, res) => {
     if (accuracyMeters !== null && (!Number.isFinite(accuracyMeters) || accuracyMeters < 0)) return res.status(400).json({ message: "Invalid GPS accuracy." });
     const recordedAt = timestamp ? new Date(timestamp) : new Date();
     if (Number.isNaN(recordedAt.getTime())) return res.status(400).json({ message: "Invalid GPS timestamp." });
+    const resolvedPlaceName = place_name || await reverseGeocode(lat, lon, shuttle.id);
 
     const location = await prisma.$transaction(async (tx) => {
       const createdLocation = await tx.shuttleLocation.create({
@@ -64,7 +87,7 @@ router.post("/", protect, authorize("driver"), async (req, res) => {
           shuttleId: shuttle.id,
           latitude: lat,
           longitude: lon,
-          placeName: place_name,
+          placeName: resolvedPlaceName,
           speedKmh: speed_kmh === null ? null : Number(speed_kmh),
           accuracyMeters,
           recordedAt,
