@@ -101,10 +101,10 @@ function TrackShuttle() {
     : null;
   const displayedNextStop = studentNearestStop?.stop.name || eta?.next_stop?.name || nearestStop?.stop.name || shuttle?.nextStop || "Next stop unavailable";
   const liveNotice = liveDistance !== null && liveDistance <= 0.25
-    ? `${shuttle.name} is currently at ${shuttle.location} and is near you${studentNearestStop ? `, close to ${studentNearestStop.stop.name}` : ""}.`
+    ? `${shuttle?.name || "The shuttle"} is currently at ${shuttle?.location || "an unknown location"} and is near you${studentNearestStop ? `, close to ${studentNearestStop.stop.name}` : ""}.`
     : liveDistance !== null && liveDistance <= 1
-      ? `${shuttle.name} is currently at ${shuttle.location} and is approaching you${studentNearestStop ? ` near ${studentNearestStop.stop.name}` : ""}.`
-      : `${shuttle.name} is currently at ${shuttle.location}.`;
+      ? `${shuttle?.name || "The shuttle"} is currently at ${shuttle?.location || "an unknown location"} and is approaching you${studentNearestStop ? ` near ${studentNearestStop.stop.name}` : ""}.`
+      : `${shuttle?.name || "The shuttle"} is currently at ${shuttle?.location || "an unknown location"}.`;
 
   if (error) {
     return <section className="mx-auto w-full max-w-6xl px-4 py-10"><p className="rounded-md bg-red-50 p-4 text-sm text-red-700" role="alert">{error}</p></section>;
