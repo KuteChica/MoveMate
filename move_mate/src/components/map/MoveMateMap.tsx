@@ -31,7 +31,6 @@ function createMarkerIcon(color: string, symbol: string) {
 
 const shuttleIcon = createMarkerIcon("#0f766e", "BUS");
 const studentIcon = createMarkerIcon("#1d4ed8", "YOU");
-const stopIcon = createMarkerIcon("#d97706", "•");
 
 function MapInteractionTracker({ interacted }: { interacted: React.MutableRefObject<boolean> }) {
   useMapEvents({
@@ -121,11 +120,6 @@ function MoveMateMap({ shuttle, stops, showStudentLocation = true, onStudentLoca
         />
         <FitMapToData shuttle={shuttle} stops={stops} fitKey={fitKey} />
         {routePath.length > 1 && <Polyline positions={routePath} pathOptions={{ color: "#0f766e", weight: 5, opacity: 0.8 }} />}
-        {stops.map((stop) => (
-          <Marker key={stop.id} position={[stop.latitude, stop.longitude]} icon={stopIcon}>
-            <Popup>{stop.name}</Popup>
-          </Marker>
-        ))}
         {shuttlePosition && (
           <Marker position={shuttlePosition} icon={shuttleIcon}>
             <Popup><strong>{shuttle.name}</strong><br />{shuttle.recordedAt ? `Updated ${new Date(shuttle.recordedAt).toLocaleTimeString()}` : "GPS update received"}</Popup>

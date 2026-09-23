@@ -115,7 +115,7 @@ function TrackShuttle() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+    <section className="mx-auto w-full max-w-6xl px-3 py-5 sm:px-6 sm:py-10">
       <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
         <div>
           <Link className="text-sm font-semibold text-teal-700 transition hover:text-teal-900" to="/dashboard">
@@ -130,20 +130,20 @@ function TrackShuttle() {
         </Link>
       </div>
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-3">
+      <div className="mb-5 grid gap-3 sm:mb-6 sm:grid-cols-3">
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Selected shuttle</p><p className="mt-2 text-lg font-semibold text-slate-900">{shuttle.name}</p></div>
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Current location</p><p className="mt-2 text-lg font-semibold text-slate-900">{shuttle.location}</p></div>
           <div className="rounded-lg border border-teal-100 bg-teal-50 p-4 shadow-sm"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal-700">Estimated arrival</p><p className="mt-2 text-lg font-semibold text-teal-900">{estimatedMinutes ? `${estimatedMinutes} minutes` : "Waiting for GPS"}</p><p className="mt-1 text-xs text-teal-800">Next stop: {displayedNextStop}</p></div>
       </div>
 
-      <div className="mb-6 rounded-lg border border-teal-100 bg-teal-50 p-4 text-sm text-teal-950">
+      <div className="mb-5 rounded-lg border border-teal-100 bg-teal-50 p-4 text-sm leading-6 text-teal-950 sm:mb-6">
         <p className="font-semibold">Live shuttle notice</p>
         <p className="mt-1">{liveNotice}{!studentLocation && " Allow location access to calculate your distance from the shuttle."}</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[0.7fr_1.3fr]">
         <div className="space-y-5">
-          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <label className="text-sm font-semibold text-slate-800">Choose a shuttle
               <select className="mt-3 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-900 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-100" value={selectedShuttleId} onChange={(event) => setSelectedShuttleId(event.target.value)}>
                 {shuttles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
@@ -154,7 +154,7 @@ function TrackShuttle() {
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${shuttle.status === "Delayed" ? "bg-amber-100 text-amber-800" : shuttle.status === "Approaching" ? "bg-teal-100 text-teal-800" : "bg-emerald-100 text-emerald-800"}`}>{shuttle.status}</span>
             </div>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <p className="text-sm font-semibold text-slate-900">Journey progress</p>
             <div className="mt-5 space-y-5">
               <div className="flex gap-3"><span className="mt-1 h-3 w-3 rounded-full bg-teal-700 ring-4 ring-teal-100" /><div><p className="text-sm font-semibold text-slate-900">{shuttle.location}</p><p className="text-xs text-slate-500">Current location</p></div></div>
@@ -164,7 +164,7 @@ function TrackShuttle() {
           </div>
         </div>
 
-        <div className="min-h-[27rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="min-h-[22rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm sm:min-h-[27rem]">
           <MoveMateMap shuttle={{ name: shuttle.name, latitude: shuttle.latitude, longitude: shuttle.longitude, recordedAt: shuttle.recordedAt }} stops={stops} onStudentLocationChange={setStudentLocation} />
           <div className="flex items-center justify-between gap-4 border-t border-slate-100 bg-white px-5 py-4">
             <div><p className="text-sm font-semibold text-teal-800">{shuttle.name}</p><p className="mt-1 text-sm text-slate-600">Until {displayedNextStop}</p></div>
