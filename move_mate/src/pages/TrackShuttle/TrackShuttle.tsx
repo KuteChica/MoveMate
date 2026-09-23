@@ -101,10 +101,10 @@ function TrackShuttle() {
     : null;
   const displayedNextStop = studentNearestStop?.stop.name || eta?.next_stop?.name || nearestStop?.stop.name || shuttle?.nextStop || "Next stop unavailable";
   const liveNotice = liveDistance !== null && liveDistance <= 0.25
-    ? `${shuttle?.name} is near you${studentNearestStop ? `, close to ${studentNearestStop.stop.name}` : ""}.`
+    ? `${shuttle.name} is currently at ${shuttle.location} and is near you${studentNearestStop ? `, close to ${studentNearestStop.stop.name}` : ""}.`
     : liveDistance !== null && liveDistance <= 1
-      ? `${shuttle?.name} is approaching${studentNearestStop ? ` ${studentNearestStop.stop.name}` : ""}.`
-      : "No immediate notification.";
+      ? `${shuttle.name} is currently at ${shuttle.location} and is approaching you${studentNearestStop ? ` near ${studentNearestStop.stop.name}` : ""}.`
+      : `${shuttle.name} is currently at ${shuttle.location}.`;
 
   if (error) {
     return <section className="mx-auto w-full max-w-6xl px-4 py-10"><p className="rounded-md bg-red-50 p-4 text-sm text-red-700" role="alert">{error}</p></section>;
@@ -138,7 +138,7 @@ function TrackShuttle() {
 
       <div className="mb-6 rounded-lg border border-teal-100 bg-teal-50 p-4 text-sm text-teal-950">
         <p className="font-semibold">Live shuttle notice</p>
-        <p className="mt-1">{studentLocation ? liveNotice : "Allow location access to receive an approach estimate for your position."}</p>
+        <p className="mt-1">{liveNotice}{!studentLocation && " Allow location access to calculate your distance from the shuttle."}</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[0.7fr_1.3fr]">
