@@ -18,7 +18,6 @@ function Navbar() {
 					<NavLink to="/" onClick={closeMenu} className="py-3 text-xs font-semibold text-[#526d70] transition hover:text-[#007d7b] md:py-0">Home</NavLink>
 					{isAuthenticated ? <NavLink to="/dashboard" onClick={closeMenu} className="py-3 text-xs font-semibold text-[#526d70] transition hover:text-[#007d7b] md:py-0">Dashboard</NavLink> : null}
 					<NavLink to="/track-shuttle" onClick={closeMenu} className="py-3 text-xs font-semibold text-[#526d70] transition hover:text-[#007d7b] md:py-0">Track Shuttle</NavLink>
-					<NavLink to="/routes" onClick={closeMenu} className="py-3 text-xs font-semibold text-[#526d70] transition hover:text-[#007d7b] md:py-0">Routes</NavLink>
 					{isAuthenticated ? <><NavLink to="/notifications" onClick={closeMenu} className="py-3 text-xs font-semibold text-[#526d70] transition hover:text-[#007d7b] md:py-0">Notifications</NavLink><NavLink to="/profile" onClick={closeMenu} className="py-3 text-xs font-semibold text-[#526d70] transition hover:text-[#007d7b] md:py-0">Profile</NavLink><button type="button" onClick={handleLogout} className="py-3 text-left text-xs font-semibold text-[#526d70] transition hover:text-[#007d7b] md:py-0">Logout</button></> : null}
 					<NavLink to="/about" onClick={closeMenu} className="py-3 text-xs font-semibold text-[#526d70] transition hover:text-[#007d7b] md:py-0">About</NavLink>
 					<NavLink to="/contact" onClick={closeMenu} className="py-3 text-xs font-semibold text-[#526d70] transition hover:text-[#007d7b] md:py-0">Contact</NavLink>

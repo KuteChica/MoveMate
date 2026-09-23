@@ -125,9 +125,6 @@ function TrackShuttle() {
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">Track your shuttle</h1>
           <p className="mt-3 max-w-2xl text-slate-600">Follow your shuttle across campus and see when it will reach the next stop.</p>
         </div>
-        <Link className="rounded-md border border-teal-700 px-4 py-2.5 text-sm font-semibold text-teal-800 transition hover:bg-teal-50" to="/routes">
-          View all routes →
-        </Link>
       </div>
 
       <div className="mb-5 grid gap-3 sm:mb-6 sm:grid-cols-3">
@@ -168,7 +165,6 @@ function TrackShuttle() {
           <MoveMateMap shuttle={{ name: shuttle.name, latitude: shuttle.latitude, longitude: shuttle.longitude, recordedAt: shuttle.recordedAt }} stops={stops} onStudentLocationChange={setStudentLocation} />
           <div className="flex items-center justify-between gap-4 border-t border-slate-100 bg-white px-5 py-4">
             <div><p className="text-sm font-semibold text-teal-800">{shuttle.name}</p><p className="mt-1 text-sm text-slate-600">Until {displayedNextStop}</p></div>
-            <Link className="text-sm font-semibold text-teal-700 hover:text-teal-900" to="/routes">Route details →</Link>
           </div>
         </div>
       </div>

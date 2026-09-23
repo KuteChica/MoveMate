@@ -36,7 +36,6 @@ function Sidebar() {
           </>
         )}
         <NavLink onClick={closeMenu} className={({ isActive }) => `rounded-md px-3 py-2.5 text-sm font-semibold transition ${isActive ? "bg-teal-50 text-[#007d7b]" : "text-slate-600 hover:bg-slate-50 hover:text-[#007d7b]"}`} to="/bus-status">Bus Status</NavLink>
-        <NavLink onClick={closeMenu} className={({ isActive }) => `rounded-md px-3 py-2.5 text-sm font-semibold transition ${isActive ? "bg-teal-50 text-[#007d7b]" : "text-slate-600 hover:bg-slate-50 hover:text-[#007d7b]"}`} to="/routes">Routes</NavLink>
         <NavLink onClick={closeMenu} className={({ isActive }) => `rounded-md px-3 py-2.5 text-sm font-semibold transition ${isActive ? "bg-teal-50 text-[#007d7b]" : "text-slate-600 hover:bg-slate-50 hover:text-[#007d7b]"}`} to="/profile">Profile</NavLink>
         </nav>
       <button className="hidden rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 sm:block" type="button" onClick={handleLogout}>
