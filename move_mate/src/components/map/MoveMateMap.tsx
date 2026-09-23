@@ -15,6 +15,7 @@ type MoveMateMapProps = {
   shuttle: ShuttleMapData;
   stops: ApiStop[];
   showStudentLocation?: boolean;
+  onStudentLocationChange?: (location: [number, number]) => void;
 };
 
 const campusCenter: LatLngExpression = [5.6508, -0.1869];
@@ -28,7 +29,7 @@ function createMarkerIcon(color: string, symbol: string) {
   });
 }
 
-const shuttleIcon = createMarkerIcon("#0f766e", "S");
+const shuttleIcon = createMarkerIcon("#0f766e", "BUS");
 const stopIcon = createMarkerIcon("#d97706", "•");
 
 function MapInteractionTracker({ interacted }: { interacted: React.MutableRefObject<boolean> }) {
@@ -75,7 +76,7 @@ function distanceInKm(first: [number, number], second: [number, number]) {
   return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function MoveMateMap({ shuttle, stops, showStudentLocation = true }: MoveMateMapProps) {
+function MoveMateMap({ shuttle, stops, showStudentLocation = true, onStudentLocationChange }: MoveMateMapProps) {
   const [studentLocation, setStudentLocation] = useState<[number, number] | null>(null);
   const [locationError, setLocationError] = useState("");
 
@@ -88,7 +89,9 @@ function MoveMateMap({ shuttle, stops, showStudentLocation = true }: MoveMateMap
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        setStudentLocation([position.coords.latitude, position.coords.longitude]);
+        const nextLocation: [number, number] = [position.coords.latitude, position.coords.longitude];
+        setStudentLocation(nextLocation);
+        onStudentLocationChange?.(nextLocation);
         setLocationError("");
       },
       () => setLocationError("Allow location access to show your position and distance."),

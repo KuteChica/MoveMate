@@ -30,6 +30,7 @@ function BusStatus() {
               <div><dt className="text-slate-500">Driver</dt><dd className="font-semibold text-slate-900">{shuttle.driver_name || "Not assigned"}</dd></div>
               <div><dt className="text-slate-500">Phone</dt><dd className="font-semibold text-slate-900">{shuttle.driver_phone || "Not provided"}</dd></div>
               <div><dt className="text-slate-500">Route</dt><dd className="font-semibold text-slate-900">{shuttle.route_name || "Not assigned"}</dd></div>
+              <div><dt className="text-slate-500">Last GPS update</dt><dd className="font-semibold text-slate-900">{shuttle.recorded_at ? new Date(shuttle.recorded_at).toLocaleString() : "No GPS update"}</dd></div>
             </dl>
             <Link className="mt-5 inline-block text-sm font-semibold text-teal-700 hover:text-teal-900" to={`/track-shuttle?shuttle=${shuttle.id}`}>Track shuttle →</Link>
           </article>
