@@ -15,7 +15,7 @@ function Sidebar() {
   };
 
   return (
-    <aside className="sticky top-0 z-20 border-b border-[#dcebea] bg-white/95 shadow-[0_4px_18px_rgba(23,60,65,0.06)] backdrop-blur" aria-label="Authenticated navigation">
+    <aside className="sticky top-0 z-50 border-b border-[#dcebea] bg-white/95 shadow-[0_4px_18px_rgba(23,60,65,0.06)] backdrop-blur" aria-label="Authenticated navigation">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center px-4 py-3 sm:gap-x-8 sm:gap-y-3 sm:px-6 lg:px-8">
         <NavLink onClick={closeMenu} className="mr-auto flex items-center gap-2 text-base font-black tracking-[-0.04em] text-[#007d7b]" to="/dashboard">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#007d7b] text-sm font-black text-white">M</span>

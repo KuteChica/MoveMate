@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { getLocationHistory, getRouteStops, getShuttleEta, getShuttles, type ApiEta, type ApiShuttle, type ApiStop } from "../../services/transitApi";
+import { getRouteStops, getShuttleEta, getShuttles, type ApiEta, type ApiShuttle, type ApiStop } from "../../services/transitApi";
 import MoveMateMap from "../../components/map/MoveMateMap";
 
 type Shuttle = {
@@ -31,7 +31,6 @@ function TrackShuttle() {
   const [shuttles, setShuttles] = useState<Shuttle[]>([]);
   const [selectedShuttleId, setSelectedShuttleId] = useState("");
   const [error, setError] = useState("");
-  const [history, setHistory] = useState<Array<{ id: number; place_name: string | null; speed_kmh: number | null; recorded_at: string }>>([]);
   const [stops, setStops] = useState<ApiStop[]>([]);
   const [eta, setEta] = useState<ApiEta | null>(null);
   const [studentLocation, setStudentLocation] = useState<[number, number] | null>(null);
@@ -70,7 +69,6 @@ function TrackShuttle() {
     if (!shuttle) return;
     setEta(null);
     setStops([]);
-    getLocationHistory(shuttle.id).then(setHistory).catch((requestError: Error) => setError(requestError.message));
     if (shuttle.routeId) getRouteStops(shuttle.routeId).then(setStops).catch((requestError: Error) => setError(requestError.message));
     getShuttleEta(shuttle.id).then(setEta).catch(() => setEta(null));
   }, [shuttle?.id, shuttle?.routeId]);
@@ -162,7 +160,6 @@ function TrackShuttle() {
           </div>
         </div>
       </div>
-      {history.length > 0 && <div className="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-semibold text-slate-900">Recent GPS updates</h2><div className="mt-3 space-y-2 text-sm text-slate-600">{history.slice(0, 5).map((location) => <p key={location.id}>{location.place_name || "Coordinates received"} · {location.speed_kmh ?? "--"} km/h · {new Date(location.recorded_at).toLocaleString()}</p>)}</div></div>}
     </section>
   );
 }
