@@ -66,7 +66,6 @@ function Hero() {
           <p className="mt-6 max-w-md text-sm leading-7 text-[#607a7c] sm:text-base">The smart campus mobility app for students. Track buses in real-time, get smart schedule alerts, and never wait in the cold again.</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to={isAuthenticated ? "/dashboard" : "/track-shuttle"} className="rounded-lg bg-[#007d7b] px-5 py-3 text-xs font-bold text-white shadow-[0_8px_18px_rgba(0,125,123,0.2)] transition hover:bg-[#006966]">{isAuthenticated ? "Go to Dashboard" : "Track Shuttle"}</Link>
-            <Link to="/routes" className="rounded-lg border border-[#007d7b] bg-white px-5 py-3 text-xs font-bold text-[#007d7b] transition hover:bg-[#e8f5f3]">View Routes</Link>
           </div>
         </div>
         <div className="flex justify-center lg:justify-end"><PhoneMockup /></div>
