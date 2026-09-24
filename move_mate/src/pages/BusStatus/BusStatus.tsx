@@ -21,7 +21,7 @@ function BusStatus() {
       {error && <p className="mt-6 rounded-md bg-red-50 p-4 text-sm text-red-700" role="alert">{error}</p>}
       <div className="mt-8 grid gap-5 md:grid-cols-3">
         {shuttles.map((shuttle) => {
-          const serviceState = shuttle.configured_status ?? shuttle.status ?? "inactive";
+          const serviceState = shuttle.status ?? "inactive";
           const statusLabel = serviceState === "active" ? "Active" : serviceState === "maintenance" ? "Maintenance" : "Inactive";
           const statusClass = serviceState === "active" ? "bg-emerald-100 text-emerald-800" : serviceState === "maintenance" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600";
 

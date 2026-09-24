@@ -31,7 +31,7 @@ function Dashboard() {
   }, []);
 
   const shuttle = shuttles.find((item) => String(item.id) === selectedShuttleId) || shuttles[0] || null;
-  const serviceState = shuttle?.configured_status ?? shuttle?.status ?? "inactive";
+  const serviceState = shuttle?.status ?? "inactive";
   const locationText = shuttle?.place_name || (shuttle && shuttle.latitude !== null && shuttle.longitude !== null ? `GPS ${shuttle.latitude.toFixed(5)}, ${shuttle.longitude.toFixed(5)}` : "Location unavailable");
   const serviceStatusText = serviceState === "active" ? "On schedule" : serviceState === "maintenance" ? "Under maintenance" : "Inactive";
   const serviceStatusColor = serviceState === "active" ? "text-emerald-700" : serviceState === "maintenance" ? "text-amber-700" : "text-slate-700";
