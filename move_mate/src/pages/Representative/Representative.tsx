@@ -24,7 +24,7 @@ function Representative() {
   const [drivers, setDrivers] = useState<ApiDriver[]>([]);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [shuttleForm, setShuttleForm] = useState({ name: "", plate_number: "", status: "active", current_route_id: "" });
+  const [shuttleForm, setShuttleForm] = useState({ name: "", plate_number: "", status: "active", current_route_id: "", driver_id: "", driver_phone: "" });
   const [routeForm, setRouteForm] = useState({ name: "", description: "", start_location: "", end_location: "" });
   const [stopForm, setStopForm] = useState({ routeId: "", name: "", latitude: "", longitude: "", stop_order: "1" });
   const [driverForm, setDriverForm] = useState({ name: "", email: "", password: "" });
@@ -49,13 +49,20 @@ function Representative() {
     setError("");
     setMessage("");
     try {
-      await createShuttle({
+      if (user?.role === "admin" && shuttleForm.driver_id && !shuttleForm.driver_phone.trim()) {
+        setError("Enter the driver's phone number to assign this shuttle.");
+        return;
+      }
+      const createdShuttle = await createShuttle({
         name: shuttleForm.name,
         plate_number: shuttleForm.plate_number || undefined,
         status: shuttleForm.status,
         current_route_id: shuttleForm.current_route_id ? Number(shuttleForm.current_route_id) : null,
       });
-      setShuttleForm({ name: "", plate_number: "", status: "active", current_route_id: "" });
+      if (user?.role === "admin" && shuttleForm.driver_id) {
+        await assignDriver(createdShuttle.id, { driver_id: Number(shuttleForm.driver_id), driver_phone: shuttleForm.driver_phone.trim() });
+      }
+      setShuttleForm({ name: "", plate_number: "", status: "active", current_route_id: "", driver_id: "", driver_phone: "" });
       await loadData();
       setMessage("Shuttle added successfully.");
     } catch (requestError) {
@@ -172,6 +179,13 @@ function Representative() {
               <option value="">No route yet</option>
               {routes.map((route) => <option key={route.id} value={route.id}>{route.name}</option>)}
             </select>
+            {user?.role === "admin" && <>
+              <select className="w-full rounded-md border border-slate-300 px-3 py-2" value={shuttleForm.driver_id} onChange={(event) => setShuttleForm({ ...shuttleForm, driver_id: event.target.value })}>
+                <option value="">No driver assigned</option>
+                {drivers.map((driver) => <option key={driver.id} value={driver.id}>{driver.name} ({driver.email})</option>)}
+              </select>
+              {shuttleForm.driver_id && <input className="w-full rounded-md border border-slate-300 px-3 py-2" placeholder="Driver phone number" value={shuttleForm.driver_phone} onChange={(event) => setShuttleForm({ ...shuttleForm, driver_phone: event.target.value })} required />}
+            </>}
           </div>
           <button className="mt-4 rounded-md bg-teal-700 px-4 py-2 font-medium text-white hover:bg-teal-800" type="submit">Add shuttle</button>
         </form>
