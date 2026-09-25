@@ -17,6 +17,19 @@ type Shuttle = {
   recordedAt: string | null;
 };
 
+function formatGps(value: number | null) {
+  if (value === null || Number.isNaN(value)) return "Location unavailable";
+  return value.toFixed(6);
+}
+
+function formatLocation(item: ApiShuttle) {
+  if (item.place_name) {
+    return item.place_name;
+  }
+
+  return "Location update in progress";
+}
+
 function distanceInKm(first: [number, number], second: [number, number]) {
   const latitudeDelta = (second[0] - first[0]) * Math.PI / 180;
   const longitudeDelta = (second[1] - first[1]) * Math.PI / 180;
@@ -42,7 +55,7 @@ function TrackShuttle() {
         const mapped = items.map((item) => ({
           id: item.id,
           name: item.name,
-          location: item.place_name || (item.latitude !== null && item.longitude !== null ? `GPS ${item.latitude.toFixed(5)}, ${item.longitude.toFixed(5)}` : "Location unavailable"),
+          location: formatLocation(item),
           nextStop: item.route_name || "Next stop unavailable",
           minutesAway: 0,
           status: item.status === "maintenance" ? "Delayed" : item.status === "active" ? "Approaching" : "On route",

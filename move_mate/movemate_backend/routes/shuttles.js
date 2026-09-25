@@ -3,10 +3,34 @@ const prisma = require("../database");
 const { protect, authorize } = require("../middleware/auth");
 
 const router = express.Router();
+const reverseGeocodeCache = new Map();
 
-function serializeShuttle(shuttle) {
+async function reverseGeocode(latitude, longitude, shuttleId) {
+  const cached = reverseGeocodeCache.get(shuttleId);
+  if (cached && Date.now() - cached.updatedAt < 60000 && Math.hypot(cached.latitude - latitude, cached.longitude - longitude) < 0.001) {
+    return cached.placeName;
+  }
+
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
+      headers: { "User-Agent": "MoveMate/1.0 campus shuttle tracker" },
+    });
+    if (!response.ok) return null;
+    const result = await response.json();
+    const address = result.address || {};
+    const placeName = address.road || address.neighbourhood || address.suburb || address.city_district || result.display_name || null;
+    if (placeName) reverseGeocodeCache.set(shuttleId, { latitude, longitude, placeName, updatedAt: Date.now() });
+    return placeName;
+  } catch {
+    return null;
+  }
+}
+
+async function serializeShuttle(shuttle) {
   const location = shuttle.locations?.[0];
   const locationIsFresh = location?.recordedAt && Date.now() - new Date(location.recordedAt).getTime() <= 120000;
+  const hasLocation = !!location && location.latitude !== null && location.longitude !== null;
+  const placeName = location?.placeName || (hasLocation ? await reverseGeocode(location.latitude, location.longitude, shuttle.id) : null);
   return {
     id: shuttle.id,
     name: shuttle.name,
@@ -21,7 +45,7 @@ function serializeShuttle(shuttle) {
     driver_phone: shuttle.driverPhone,
     latitude: location?.latitude ?? null,
     longitude: location?.longitude ?? null,
-    place_name: location?.placeName || null,
+    place_name: placeName,
     speed_kmh: location?.speedKmh || null,
     recorded_at: location?.recordedAt || null,
     updated_at: shuttle.updatedAt,
@@ -49,7 +73,7 @@ router.get("/", protect, async (req, res) => {
       },
     });
 
-    res.json({ shuttles: shuttles.map(serializeShuttle) });
+    res.json({ shuttles: await Promise.all(shuttles.map(serializeShuttle)) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Could not load shuttles." });
@@ -78,7 +102,8 @@ router.get("/assigned/me", protect, authorize("driver"), async (req, res) => {
     },
   });
   if (!shuttle) return res.status(404).json({ message: "No shuttle is assigned to this driver." });
-  res.json({ shuttle: { ...serializeShuttle(shuttle), route_id: shuttle.currentRoute?.id || null } });
+  const serialized = await serializeShuttle(shuttle);
+  res.json({ shuttle: { ...serialized, route_id: shuttle.currentRoute?.id || null } });
 });
 
 /**
@@ -122,7 +147,7 @@ router.patch("/:id/assignment", protect, authorize("admin"), async (req, res) =>
       data: { driverId, driverPhone },
       include: { currentRoute: { select: { name: true } }, driver: { select: { id: true, name: true, email: true } }, locations: { orderBy: { recordedAt: "desc" }, take: 1 } },
     });
-    res.json({ shuttle: serializeShuttle(shuttle) });
+    res.json({ shuttle: await serializeShuttle(shuttle) });
   } catch (error) {
     if (error.code === "P2002") return res.status(409).json({ message: "That driver is already assigned to another shuttle." });
     if (error.code === "P2025") return res.status(404).json({ message: "Shuttle not found." });
@@ -162,7 +187,7 @@ router.get("/:id", protect, async (req, res) => {
       return res.status(404).json({ message: "Shuttle not found." });
     }
 
-    const serialized = serializeShuttle(shuttle);
+    const serialized = await serializeShuttle(shuttle);
     serialized.route_id = shuttle.currentRoute?.id || null;
     res.json({ shuttle: serialized });
   } catch (error) {
