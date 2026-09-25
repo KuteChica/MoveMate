@@ -20,16 +20,16 @@ type MoveMateMapProps = {
 
 const campusCenter: LatLngExpression = [5.6508, -0.1869];
 
-function createMarkerIcon(color: string, symbol: string) {
+function createMarkerIcon(color: string, symbol: string, isBus = false) {
   return L.divIcon({
     className: "movemate-map-marker",
-    html: `<span style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border:3px solid white;border-radius:50%;background:${color};color:white;font-weight:700;box-shadow:0 2px 6px rgba(15,23,42,.35)">${symbol}</span>`,
-    iconAnchor: [18, 18],
+    html: `<span style="display:flex;align-items:center;justify-content:center;width:40px;height:40px;border:3px solid white;border-radius:${isBus ? '12px' : '50%'};background:${color};color:white;font-weight:700;font-size:${isBus ? '22px' : '14px'};box-shadow:0 2px 6px rgba(15,23,42,.35)">${symbol}</span>`,
+    iconAnchor: [20, 20],
     popupAnchor: [0, -18],
   });
 }
 
-const shuttleIcon = createMarkerIcon("#0f766e", "BUS");
+const shuttleIcon = createMarkerIcon("#0f766e", "🚌", true);
 const studentIcon = createMarkerIcon("#1d4ed8", "YOU");
 
 function MapInteractionTracker({ interacted }: { interacted: React.MutableRefObject<boolean> }) {
