@@ -17,7 +17,8 @@ type AuthApiResponse = {
   token: string;
 };
 
-const authApiUrl = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth`;
+const backendOrigin = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:5000" : "https://movemate-api.onrender.com");
+const authApiUrl = `${backendOrigin}/api/auth`;
 const tokenStorageKey = "movemate-auth-token";
 const userStorageKey = "movemate-auth-user";
 
