@@ -39,7 +39,7 @@ function Dashboard() {
     )
   );
   const serviceState = shuttle?.configured_status === "maintenance" ? "maintenance" : isLiveTracking ? "active" : "inactive";
-  const locationText = shuttle?.place_name || "Location update in progress";
+  const locationText = shuttle?.place_name || (shuttle ? "Tracking around campus" : "No live location reported yet");
   const serviceStatusText = serviceState === "active" ? "On schedule" : serviceState === "maintenance" ? "Under maintenance" : "Inactive";
   const serviceStatusColor = serviceState === "active" ? "text-emerald-700" : serviceState === "maintenance" ? "text-amber-700" : "text-slate-700";
 
