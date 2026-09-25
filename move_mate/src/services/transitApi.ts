@@ -184,6 +184,13 @@ export async function getLocationHistory(shuttleId: number) {
   return response.locations;
 }
 
+export async function askAiAssistant(message: string) {
+  return request<{ success: boolean; source?: string; message: string }>("/api/ai/chat", {
+    method: "POST",
+    body: JSON.stringify({ message }),
+  });
+}
+
 export async function submitFeedback(input: { name: string; email: string; subject: string; message: string }) {
   return request<{ message: string }>("/api/feedback", {
     method: "POST",

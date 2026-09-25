@@ -17,4 +17,9 @@ module.exports = {
   jwt: {
     secret: process.env.JWT_SECRET,
   },
+  ai: {
+    apiKey: process.env.AI_API_KEY || "",
+    apiBaseUrl: process.env.AI_API_BASE_URL || "https://api.openai.com/v1",
+    model: process.env.AI_MODEL || "gpt-4o-mini",
+  },
 };

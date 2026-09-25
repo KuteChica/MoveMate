@@ -12,6 +12,7 @@ const routeRoutes = require("./routes/routeRoutes");
 const locationRoutes = require("./routes/locations");
 const notificationRoutes = require("./routes/notifications");
 const feedbackRoutes = require("./routes/feedback");
+const aiRoutes = require("./routes/ai");
 
 const app = express();
 const PORT = config.server.port;
@@ -45,6 +46,7 @@ app.use("/api/routes", routeRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/feedback", feedbackRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "API endpoint not found." });

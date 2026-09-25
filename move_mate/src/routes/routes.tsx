@@ -12,6 +12,7 @@ import Profile from "../pages/Profile/Profile";
 import Representative from "../pages/Representative/Representative";
 import BusStatus from "../pages/BusStatus/BusStatus";
 import DriverDashboard from "../pages/DriverDashboard/DriverDashboard";
+import AIAssistant from "../pages/AIAssistant/AIAssistant";
 
 export type AppRouteDefinition = {
   path: string;
@@ -40,6 +41,7 @@ const routes: AppRouteDefinition[] = [
     unauthenticatedOnly: true,
   },
   { path: "/dashboard", element: <Dashboard />, isProtected: true },
+  { path: "/ai-assistant", element: <AIAssistant />, isProtected: true },
   { path: "/routes", element: <Routes />, isProtected: true },
   { path: "/notifications", element: <Notifications />, isProtected: true },
   { path: "/profile", element: <Profile />, isProtected: true },

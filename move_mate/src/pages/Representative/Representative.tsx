@@ -48,25 +48,40 @@ function Representative() {
     event.preventDefault();
     setError("");
     setMessage("");
+    const plateNumber = shuttleForm.plate_number.trim();
+    const driverId = shuttleForm.driver_id ? Number(shuttleForm.driver_id) : null;
+
+    if (plateNumber && shuttles.some((shuttle) => shuttle.plate_number?.toLowerCase() === plateNumber.toLowerCase())) {
+      setError("This plate number is already in use by another shuttle.");
+      return;
+    }
+
+    if (user?.role === "admin" && driverId && !shuttleForm.driver_phone.trim()) {
+      setError("Enter the driver's phone number to assign this shuttle.");
+      return;
+    }
+
+    if (user?.role === "admin" && driverId && shuttles.some((shuttle) => shuttle.driver_id === driverId)) {
+      setError("This driver is already assigned to another shuttle.");
+      return;
+    }
+
     try {
-      if (user?.role === "admin" && shuttleForm.driver_id && !shuttleForm.driver_phone.trim()) {
-        setError("Enter the driver's phone number to assign this shuttle.");
-        return;
-      }
       const createdShuttle = await createShuttle({
         name: shuttleForm.name,
-        plate_number: shuttleForm.plate_number || undefined,
+        plate_number: plateNumber || undefined,
         status: shuttleForm.status,
         current_route_id: shuttleForm.current_route_id ? Number(shuttleForm.current_route_id) : null,
       });
-      if (user?.role === "admin" && shuttleForm.driver_id) {
-        await assignDriver(createdShuttle.id, { driver_id: Number(shuttleForm.driver_id), driver_phone: shuttleForm.driver_phone.trim() });
+      if (user?.role === "admin" && driverId) {
+        await assignDriver(createdShuttle.id, { driver_id: driverId, driver_phone: shuttleForm.driver_phone.trim() });
       }
       setShuttleForm({ name: "", plate_number: "", status: "active", current_route_id: "", driver_id: "", driver_phone: "" });
       await loadData();
       setMessage("Shuttle added successfully.");
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not add shuttle.");
+      const message = requestError instanceof Error ? requestError.message : "Could not add shuttle.";
+      setError(message.includes("plate") || message.includes("unique") ? "This plate number is already in use by another shuttle." : message);
     }
   };
 
