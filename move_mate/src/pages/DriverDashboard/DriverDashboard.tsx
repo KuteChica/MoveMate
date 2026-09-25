@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import MoveMateMap from "../../components/map/MoveMateMap";
-import { getRouteStops, getShuttles, sendDriverLocation, type ApiShuttle, type ApiStop } from "../../services/transitApi";
+import { getAssignedShuttle, getRouteStops, getShuttles, sendDriverLocation, type ApiShuttle, type ApiStop } from "../../services/transitApi";
 
 function DriverDashboard() {
   const { user } = useAuth();
@@ -17,12 +17,25 @@ function DriverDashboard() {
   const sendTimer = useRef<number | null>(null);
 
   useEffect(() => {
-    getShuttles()
-      .then((items) => {
+    const loadDriverDashboard = async () => {
+      try {
+        const items = await getShuttles();
         setAvailableShuttles(items);
-        setShuttle(null);
-      })
-      .catch((requestError: Error) => setError(requestError.message));
+
+        try {
+          const assigned = await getAssignedShuttle();
+          const assignedShuttle = items.find((item) => item.id === assigned.id) || assigned;
+          setShuttle(assignedShuttle);
+        } catch {
+          const assignedToUser = items.find((item) => Number(item.driver_id) === Number(user?.id));
+          setShuttle(assignedToUser || null);
+        }
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "Could not load driver dashboard.");
+      }
+    };
+
+    loadDriverDashboard();
 
     return () => {
       if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
@@ -61,7 +74,7 @@ function DriverDashboard() {
       setError("Select the shuttle you are currently driving before starting GPS tracking.");
       return;
     }
-    if (shuttle.driver_id !== user?.id) {
+    if (Number(shuttle.driver_id) !== Number(user?.id)) {
       setError("This shuttle is not assigned to your driver account. Ask an administrator to assign it first.");
       return;
     }
@@ -107,7 +120,7 @@ function DriverDashboard() {
           <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <dl className="space-y-4 text-sm"><div><dt className="text-slate-500">Currently driving</dt><dd className="mt-1 text-lg font-semibold text-slate-900">{shuttle ? `${shuttle.name} Shuttle` : "No shuttle assigned"}</dd></div><div><dt className="text-slate-500">Assigned route</dt><dd className="mt-1 text-lg font-semibold text-slate-900">{shuttle?.route_name || "Not assigned"}</dd></div></dl>
             <label className="mt-5 block border-t border-slate-100 pt-5 text-sm font-semibold text-slate-800">Choose the shuttle you are driving<select className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 font-normal text-slate-900" value={shuttle?.id || ""} onChange={(event) => { stopTracking(); setShuttle(availableShuttles.find((item) => item.id === Number(event.target.value)) || null); }}><option value="">Select a shuttle</option>{availableShuttles.map((item) => <option key={item.id} value={item.id}>{item.name} - Driver: {item.driver_name || "Unassigned"}</option>)}</select></label>
-            <div className="mt-6 border-t border-slate-100 pt-5"><p className="text-sm text-slate-500">GPS Status</p><p className={`mt-1 text-xl font-semibold ${gpsStatus === "Connected" ? "text-emerald-700" : "text-slate-700"}`}>{gpsStatus}</p><p className="mt-2 text-xs text-slate-500">Location is sent automatically while tracking is active.</p><div className="mt-4 flex gap-3"><button className="rounded-md bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={startTracking} disabled={!shuttle || shuttle.driver_id !== user?.id}>Start Tracking</button><button className="rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" onClick={stopTracking}>Stop Tracking</button></div></div>
+            <div className="mt-6 border-t border-slate-100 pt-5"><p className="text-sm text-slate-500">GPS Status</p><p className={`mt-1 text-xl font-semibold ${gpsStatus === "Connected" ? "text-emerald-700" : "text-slate-700"}`}>{gpsStatus}</p><p className="mt-2 text-xs text-slate-500">Location is sent automatically while tracking is active.</p><div className="mt-4 flex gap-3"><button className="rounded-md bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={startTracking} disabled={!shuttle || Number(shuttle.driver_id) !== Number(user?.id)}>Start Tracking</button><button className="rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" type="button" onClick={stopTracking}>Stop Tracking</button></div></div>
           </div>
           {position && <p className="rounded-md bg-teal-50 p-4 text-sm text-teal-900">Accuracy: {Math.round(position.accuracy)} m · Updated {new Date(position.timestamp).toLocaleTimeString()}</p>}
           {error && <p className="rounded-md bg-red-50 p-4 text-sm text-red-700" role="alert">{error}</p>}
