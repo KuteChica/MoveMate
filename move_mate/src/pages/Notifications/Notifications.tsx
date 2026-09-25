@@ -1,6 +1,24 @@
 import { useEffect, useState } from "react";
 import { getNotifications, getShuttles, type ApiNotification, type ApiShuttle } from "../../services/transitApi";
 
+async function resolvePlaceNameFromGps(latitude: number | null, longitude: number | null) {
+  if (latitude === null || longitude === null || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
+      headers: { "User-Agent": "MoveMate/1.0 campus shuttle tracker" },
+    });
+    if (!response.ok) return null;
+    const result = await response.json();
+    const address = result?.address || {};
+    return address.road || address.neighbourhood || address.suburb || address.city_district || result?.display_name || null;
+  } catch {
+    return null;
+  }
+}
+
 function formatGps(value: number | null) {
   if (value === null || Number.isNaN(value)) return "Location unavailable";
   return value.toFixed(6);
@@ -11,7 +29,7 @@ function getLocationDescription(shuttle: ApiShuttle) {
     return `${shuttle.name} is currently at ${shuttle.place_name}.`;
   }
 
-  return `${shuttle.name} is currently at a live location update.`;
+  return `${shuttle.name} is currently on the move.`;
 }
 
 function Notifications() {
@@ -20,10 +38,29 @@ function Notifications() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const load = () => {
-      getNotifications().then(setNotifications).catch((requestError: Error) => setError(requestError.message));
-      getShuttles().then(setShuttles).catch((requestError: Error) => setError(requestError.message));
+    const load = async () => {
+      try {
+        const [notificationData, shuttleData] = await Promise.all([
+          getNotifications(),
+          getShuttles(),
+        ]);
+
+        const resolvedShuttles = await Promise.all(shuttleData.map(async (shuttle) => {
+          if (shuttle.place_name || shuttle.latitude === null || shuttle.longitude === null) {
+            return shuttle;
+          }
+
+          const exactPlace = await resolvePlaceNameFromGps(shuttle.latitude, shuttle.longitude);
+          return { ...shuttle, place_name: exactPlace || shuttle.place_name };
+        }));
+
+        setNotifications(notificationData);
+        setShuttles(resolvedShuttles);
+      } catch (requestError: Error) {
+        setError(requestError.message);
+      }
     };
+
     load();
     const timer = window.setInterval(load, 10000);
     return () => window.clearInterval(timer);
