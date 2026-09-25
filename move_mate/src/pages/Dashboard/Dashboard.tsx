@@ -12,6 +12,24 @@ function getGreeting() {
   return "Good evening";
 }
 
+async function resolvePlaceNameFromGps(latitude: number | null, longitude: number | null) {
+  if (latitude === null || longitude === null || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
+      headers: { "User-Agent": "MoveMate/1.0 campus shuttle tracker" },
+    });
+    if (!response.ok) return null;
+    const result = await response.json();
+    const address = result?.address || {};
+    return address.road || address.neighbourhood || address.suburb || address.city_district || result?.display_name || null;
+  } catch {
+    return null;
+  }
+}
+
 function Dashboard() {
   const { user } = useAuth();
   const [shuttles, setShuttles] = useState<ApiShuttle[]>([]);
@@ -32,6 +50,38 @@ function Dashboard() {
   }, []);
 
   const shuttle = shuttles.find((item) => String(item.id) === selectedShuttleId) || shuttles[0] || null;
+  const [locationText, setLocationText] = useState("No live location reported yet");
+
+  useEffect(() => {
+    let active = true;
+
+    const loadLocationText = async () => {
+      if (!shuttle) {
+        setLocationText("No live location reported yet");
+        return;
+      }
+
+      if (shuttle.place_name) {
+        setLocationText(shuttle.place_name);
+        return;
+      }
+
+      if (shuttle.latitude !== null && shuttle.longitude !== null) {
+        const resolvedName = await resolvePlaceNameFromGps(shuttle.latitude, shuttle.longitude);
+        if (!active) return;
+        setLocationText(resolvedName || `Near ${shuttle.latitude.toFixed(4)}, ${shuttle.longitude.toFixed(4)}`);
+        return;
+      }
+
+      setLocationText("No live location reported yet");
+    };
+
+    loadLocationText();
+    return () => {
+      active = false;
+    };
+  }, [shuttle?.id, shuttle?.place_name, shuttle?.latitude, shuttle?.longitude]);
+
   const isLiveTracking = Boolean(
     shuttle && (
       shuttle.status === "active"
@@ -39,7 +89,6 @@ function Dashboard() {
     )
   );
   const serviceState = shuttle?.configured_status === "maintenance" ? "maintenance" : isLiveTracking ? "active" : "inactive";
-  const locationText = shuttle?.place_name || (shuttle ? "Tracking around campus" : "No live location reported yet");
   const serviceStatusText = serviceState === "active" ? "On schedule" : serviceState === "maintenance" ? "Under maintenance" : "Inactive";
   const serviceStatusColor = serviceState === "active" ? "text-emerald-700" : serviceState === "maintenance" ? "text-amber-700" : "text-slate-700";
 

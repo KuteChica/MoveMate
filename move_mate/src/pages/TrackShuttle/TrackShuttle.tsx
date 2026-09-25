@@ -17,6 +17,24 @@ type Shuttle = {
   recordedAt: string | null;
 };
 
+async function resolvePlaceNameFromGps(latitude: number | null, longitude: number | null) {
+  if (latitude === null || longitude === null || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
+      headers: { "User-Agent": "MoveMate/1.0 campus shuttle tracker" },
+    });
+    if (!response.ok) return null;
+    const result = await response.json();
+    const address = result?.address || {};
+    return address.road || address.neighbourhood || address.suburb || address.city_district || result?.display_name || null;
+  } catch {
+    return null;
+  }
+}
+
 function formatGps(value: number | null) {
   if (value === null || Number.isNaN(value)) return "Location unavailable";
   return value.toFixed(6);
@@ -25,6 +43,10 @@ function formatGps(value: number | null) {
 function formatLocation(item: ApiShuttle) {
   if (item.place_name) {
     return item.place_name;
+  }
+
+  if (item.latitude !== null && item.longitude !== null) {
+    return "Checking exact location...";
   }
 
   return "Location update in progress";
@@ -50,26 +72,36 @@ function TrackShuttle() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const loadShuttles = () => getShuttles()
-      .then((items: ApiShuttle[]) => {
-        const mapped = items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          location: formatLocation(item),
-          nextStop: item.route_name || "Next stop unavailable",
-          minutesAway: 0,
-          status: item.status === "maintenance" ? "Delayed" : item.status === "active" ? "Approaching" : "On route",
-          routeId: item.current_route_id,
-          latitude: item.latitude,
-          longitude: item.longitude,
-          speedKmh: item.speed_kmh || null,
-          recordedAt: item.recorded_at,
+    const loadShuttles = async () => {
+      try {
+        const items: ApiShuttle[] = await getShuttles();
+        const mapped = await Promise.all(items.map(async (item) => {
+          const exactLocation = item.place_name || (item.latitude !== null && item.longitude !== null
+            ? await resolvePlaceNameFromGps(item.latitude, item.longitude)
+            : null);
+
+          return {
+            id: item.id,
+            name: item.name,
+            location: exactLocation || formatLocation(item),
+            nextStop: item.route_name || "Next stop unavailable",
+            minutesAway: 0,
+            status: item.status === "maintenance" ? "Delayed" : item.status === "active" ? "Approaching" : "On route",
+            routeId: item.current_route_id,
+            latitude: item.latitude,
+            longitude: item.longitude,
+            speedKmh: item.speed_kmh || null,
+            recordedAt: item.recorded_at,
+          };
         }));
+
         setShuttles(mapped);
         const requestedShuttle = searchParams.get("shuttle");
         setSelectedShuttleId((current) => current || mapped.find((item) => String(item.id) === requestedShuttle)?.id.toString() || mapped[0]?.id.toString() || "");
-      })
-      .catch((requestError: Error) => setError(requestError.message));
+      } catch (requestError: Error) {
+        setError(requestError.message);
+      }
+    };
 
     loadShuttles();
     const timer = window.setInterval(loadShuttles, 10000);
