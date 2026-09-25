@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
+import AIBotLauncher from "../../components/AIBotLauncher";
 import { useAuth } from "../../context/AuthContext";
 import { getShuttles, type ApiShuttle } from "../../services/transitApi";
 
@@ -76,6 +77,7 @@ function Dashboard() {
         <Link className="rounded-md border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50" to="/ai-assistant">MoveMate AI</Link>
         <Link className="rounded-md border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50" to="/notifications">Notifications</Link>
       </div>
+      <AIBotLauncher />
     </section>
   );
 }

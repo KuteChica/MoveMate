@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import { askAiAssistant } from "../../services/transitApi";
 
 type ChatMessage = {
@@ -16,11 +17,14 @@ const suggestedQuestions = [
 ];
 
 function AIAssistant() {
+  const { user } = useAuth();
+  const firstName = user?.name?.split(" ")[0] || "Student";
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
       role: "assistant",
-      text: "I can help with MoveMate shuttle information using the current MoveMate data. Ask about routes, stops, active shuttles, or shuttle status.",
+      text: `Hi ${firstName}! I can help with MoveMate shuttle information using the current MoveMate data. Ask about routes, stops, active shuttles, or shuttle status.`,
     },
   ]);
   const [input, setInput] = useState("");
@@ -69,7 +73,8 @@ function AIAssistant() {
       <div className="mb-6 flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-teal-700">Student support</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">MoveMate AI</h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Hello, {firstName}</h1>
+          <p className="mt-1 text-sm text-slate-600">MoveMate AI is ready to help with shuttle information.</p>
         </div>
         <Link className="text-sm font-semibold text-teal-700 hover:text-teal-900" to="/dashboard">
           ← Dashboard
