@@ -10,10 +10,9 @@ type ChatMessage = {
 };
 
 const suggestedQuestions = [
-  "Where is the nearest active shuttle?",
-  "What routes are available?",
-  "What stops are available?",
-  "Which shuttles are active?",
+  "How many minutes more for Bani shuttle to get to my current location?",
+  "What is Bani shuttle status?",
+  "Where is TF right now?",
 ];
 
 function AIAssistant() {
@@ -24,7 +23,7 @@ function AIAssistant() {
     {
       id: "welcome",
       role: "assistant",
-      text: `Hi ${firstName}! I can help with MoveMate shuttle information using the current MoveMate data. Ask about routes, stops, active shuttles, or shuttle status.`,
+      text: `Hi ${firstName}! I can help with the live MoveMate shuttle status, current positions, and ETA questions using the latest data available right now.`,
     },
   ]);
   const [input, setInput] = useState("");
@@ -132,7 +131,7 @@ function AIAssistant() {
               type="text"
               value={input}
               onChange={(event) => setInput(event.target.value)}
-              placeholder="Ask about shuttle status, routes, or stops..."
+              placeholder="Ask about live shuttle status, ETA, or current location..."
               className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
             />
             <button

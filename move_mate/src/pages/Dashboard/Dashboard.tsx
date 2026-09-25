@@ -32,7 +32,13 @@ function Dashboard() {
   }, []);
 
   const shuttle = shuttles.find((item) => String(item.id) === selectedShuttleId) || shuttles[0] || null;
-  const serviceState = shuttle?.status ?? "inactive";
+  const isLiveTracking = Boolean(
+    shuttle && (
+      shuttle.status === "active"
+      || (shuttle.recorded_at && Date.now() - new Date(shuttle.recorded_at).getTime() <= 120000)
+    )
+  );
+  const serviceState = shuttle?.configured_status === "maintenance" ? "maintenance" : isLiveTracking ? "active" : "inactive";
   const locationText = shuttle?.place_name || "Location update in progress";
   const serviceStatusText = serviceState === "active" ? "On schedule" : serviceState === "maintenance" ? "Under maintenance" : "Inactive";
   const serviceStatusColor = serviceState === "active" ? "text-emerald-700" : serviceState === "maintenance" ? "text-amber-700" : "text-slate-700";

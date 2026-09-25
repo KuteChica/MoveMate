@@ -19,6 +19,14 @@ function listActiveShuttles(shuttles) {
   })) : [];
 }
 
+function getShuttleStatus(shuttle) {
+  if (!shuttle) return "inactive";
+  if (shuttle.status === "maintenance") return "maintenance";
+  if (!shuttle.recordedAt) return "inactive";
+  const ageMinutes = (Date.now() - new Date(shuttle.recordedAt).getTime()) / 60000;
+  return ageMinutes <= 2 ? "active" : "inactive";
+}
+
 function buildSnapshot() {
   return Promise.all([
     prisma.shuttle.findMany({
@@ -72,7 +80,32 @@ function buildFallbackResponse(message, snapshot) {
   const lower = message.toLowerCase();
   const routes = snapshot.routes || [];
   const shuttles = snapshot.shuttles || [];
-  const activeShuttles = shuttles.filter((shuttle) => shuttle.status === "active");
+  const activeShuttles = shuttles.filter((shuttle) => getShuttleStatus(shuttle) === "active");
+
+  const bani = shuttles.find((shuttle) => shuttle.name && shuttle.name.toLowerCase() === "bani");
+  if (lower.includes("bani") && lower.includes("status")) {
+    if (!bani) return "Bani shuttle is not currently available in the MoveMate records.";
+    const status = getShuttleStatus(bani);
+    if (status === "active") {
+      return `Bani shuttle is currently active${bani.placeName ? ` and last reported near ${bani.placeName}` : ""}.`;
+    }
+    if (status === "maintenance") {
+      return "Bani shuttle is currently under maintenance.";
+    }
+    return "Bani shuttle is currently inactive because it is not reporting live tracking right now.";
+  }
+
+  if (lower.includes("bani") && (lower.includes("minutes") || lower.includes("eta") || lower.includes("arrive") || lower.includes("how long"))) {
+    if (!bani) return "I could not find Bani shuttle in the current MoveMate records.";
+    if (!bani.placeName && (!bani.latitude || !bani.longitude)) {
+      return "Bani shuttle is currently not reporting a live GPS update, so I cannot estimate its arrival time right now.";
+    }
+    const status = getShuttleStatus(bani);
+    if (status !== "active") {
+      return `Bani shuttle is currently ${status}. I cannot give a reliable arrival time until it is actively tracking.`;
+    }
+    return `Bani shuttle is currently ${status}${bani.placeName ? ` near ${bani.placeName}` : ""}. I can estimate its arrival to your current location once you share your exact location.`;
+  }
 
   if (lower.includes("route") && (lower.includes("available") || lower.includes("what routes") || lower.includes("routes are"))) {
     if (!routes.length) {
