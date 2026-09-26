@@ -39,6 +39,16 @@ function getDemoBaniLocation() {
   return demoLocations[Math.floor(Date.now() / 60000) % demoLocations.length];
 }
 
+function findShuttleByName(message, shuttles) {
+  const normalizedMessage = String(message || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ");
+
+  return shuttles.find((shuttle) => {
+    if (!shuttle?.name) return false;
+    const shuttleName = shuttle.name.toLowerCase();
+    return normalizedMessage.includes(shuttleName) || normalizedMessage.includes(shuttleName.replace(/\s+/g, ""));
+  }) || null;
+}
+
 function buildSnapshot() {
   return Promise.all([
     prisma.shuttle.findMany({
@@ -93,6 +103,17 @@ function buildFallbackResponse(message, snapshot) {
   const routes = snapshot.routes || [];
   const shuttles = snapshot.shuttles || [];
   const activeShuttles = shuttles.filter((shuttle) => getShuttleStatus(shuttle) === "active");
+  const namedShuttle = findShuttleByName(message, shuttles);
+
+  if (namedShuttle && lower.includes("where")) {
+    if (namedShuttle.latitude && namedShuttle.longitude && namedShuttle.placeName) {
+      return `${namedShuttle.name} was last reported near ${namedShuttle.placeName}.`;
+    }
+    if (namedShuttle.latitude && namedShuttle.longitude) {
+      return `${namedShuttle.name} has a recent GPS point recorded, but its friendly place name is not currently available.`;
+    }
+    return `${namedShuttle.name} currently has no live location reported in MoveMate.`;
+  }
 
   const bani = shuttles.find((shuttle) => shuttle.name && shuttle.name.toLowerCase() === "bani");
   if (lower.includes("bani") && lower.includes("status")) {
@@ -149,12 +170,12 @@ function buildFallbackResponse(message, snapshot) {
   }
 
   if (lower.includes("where") && lower.includes("shuttle")) {
-    const match = shuttles.find((shuttle) => lower.includes(shuttle.name.toLowerCase()));
+    const match = namedShuttle || shuttles.find((shuttle) => lower.includes(shuttle.name.toLowerCase()));
     if (!match) {
-      return `Bani shuttle is currently near ${getDemoBaniLocation()}.`;
+      return "I could not match that shuttle question to a shuttle in the current MoveMate records.";
     }
     if (!match.latitude || !match.longitude || !match.placeName) {
-      return `${match.name} is currently moving near ${getDemoBaniLocation()}.`;
+      return `${match.name} currently has no live location reported in MoveMate.`;
     }
     return `${match.name} was last reported near ${match.placeName}.`;
   }

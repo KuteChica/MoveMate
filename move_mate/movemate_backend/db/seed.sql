@@ -42,11 +42,19 @@ WHERE r.name = 'Main Campus Route'
   AND NOT EXISTS (SELECT 1 FROM shuttles WHERE shuttles.name = v.name);
 
 -- The application can accept a driver's real GPS position through POST /api/locations.
--- This demo location is intentionally only seed data for testing.
+-- These demo points give the AI assistant a real TF example to answer "Where is TF right now?".
 INSERT INTO shuttle_locations (shuttle_id, latitude, longitude, place_name, speed_kmh)
 SELECT s.id, 5.6508, -0.1869, 'Legon Hall', 20, NULL
 FROM shuttles s
 WHERE s.name = 'Bani'
+  AND NOT EXISTS (
+    SELECT 1 FROM shuttle_locations sl WHERE sl.shuttle_id = s.id
+  );
+
+INSERT INTO shuttle_locations (shuttle_id, latitude, longitude, place_name, speed_kmh)
+SELECT s.id, 5.6519, -0.1871, 'Balme Library', 22, NULL
+FROM shuttles s
+WHERE s.name = 'TF'
   AND NOT EXISTS (
     SELECT 1 FROM shuttle_locations sl WHERE sl.shuttle_id = s.id
   );

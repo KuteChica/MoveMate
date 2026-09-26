@@ -53,18 +53,27 @@ async function main() {
       prisma.shuttle.create({ data: { name: "TF", plateNumber: "MM-003", status: "inactive", currentRouteId: route.id } }),
     ]);
 
-  const shuttle = shuttles[0];
-  const existingLocation = await prisma.shuttleLocation.findFirst({ where: { shuttleId: shuttle.id } });
-  if (!existingLocation) {
-    await prisma.shuttleLocation.create({
-      data: {
-        shuttleId: shuttle.id,
-        latitude: 5.6508,
-        longitude: -0.1869,
-        placeName: "Legon Hall",
-        speedKmh: 20,
-      },
-    });
+  const demoLocations = {
+    Bani: { latitude: 5.6508, longitude: -0.1869, placeName: "Legon Hall", speedKmh: 20 },
+    TF: { latitude: 5.6519, longitude: -0.1871, placeName: "Balme Library", speedKmh: 22 },
+  };
+
+  for (const [name, info] of Object.entries(demoLocations)) {
+    const shuttle = shuttles.find((entry) => entry.name === name);
+    if (!shuttle) continue;
+
+    const existingLocation = await prisma.shuttleLocation.findFirst({ where: { shuttleId: shuttle.id } });
+    if (!existingLocation) {
+      await prisma.shuttleLocation.create({
+        data: {
+          shuttleId: shuttle.id,
+          latitude: info.latitude,
+          longitude: info.longitude,
+          placeName: info.placeName,
+          speedKmh: info.speedKmh,
+        },
+      });
+    }
   }
 }
 
