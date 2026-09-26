@@ -4,9 +4,43 @@ const config = require("../config");
 const { protect } = require("../middleware/auth");
 
 const router = express.Router();
+const reverseGeocodeCache = new Map();
 
 function sanitizeMessage(message) {
   return String(message || "").trim();
+}
+
+async function resolvePlaceNameFromGps(latitude, longitude, shuttleId) {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  const cacheKey = `${shuttleId}:${latitude.toFixed(5)}:${longitude.toFixed(5)}`;
+  if (reverseGeocodeCache.has(cacheKey)) {
+    return reverseGeocodeCache.get(cacheKey);
+  }
+
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
+      headers: { "User-Agent": "MoveMate/1.0 campus shuttle tracker" },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const result = await response.json();
+    const address = result?.address || {};
+    const placeName = address.road || address.neighbourhood || address.suburb || address.city_district || result?.display_name || null;
+
+    if (placeName) {
+      reverseGeocodeCache.set(cacheKey, placeName);
+    }
+
+    return placeName;
+  } catch {
+    return null;
+  }
 }
 
 function listActiveShuttles(shuttles) {
@@ -64,38 +98,47 @@ function buildSnapshot() {
         stops: { orderBy: { stopOrder: "asc" }, include: { stop: true } },
       },
     }),
-  ]).then(([shuttles, routes]) => ({
-    shuttles: shuttles.map((shuttle) => ({
-      id: shuttle.id,
-      name: shuttle.name,
-      status: shuttle.status,
-      currentRouteId: shuttle.currentRouteId,
-      routeName: shuttle.currentRoute?.name || null,
-      routeStart: shuttle.currentRoute?.startLocation || null,
-      routeEnd: shuttle.currentRoute?.endLocation || null,
-      latitude: shuttle.locations?.[0]?.latitude ?? null,
-      longitude: shuttle.locations?.[0]?.longitude ?? null,
-      placeName: shuttle.locations?.[0]?.placeName || null,
-      recordedAt: shuttle.locations?.[0]?.recordedAt || null,
-      driverName: shuttle.driver?.name || null,
-      driverPhone: shuttle.driverPhone || null,
-    })),
-    routes: routes.map((route) => ({
-      id: route.id,
-      name: route.name,
-      description: route.description || null,
-      startLocation: route.startLocation || null,
-      endLocation: route.endLocation || null,
-      active: route.active,
-      stops: route.stops.map(({ stop, stopOrder }) => ({
-        stopOrder,
-        id: stop.id,
-        name: stop.name,
-        latitude: stop.latitude,
-        longitude: stop.longitude,
+  ]).then(async ([shuttles, routes]) => {
+    const resolvedShuttles = await Promise.all(shuttles.map(async (shuttle) => {
+      const latestLocation = shuttle.locations?.[0];
+      const resolvedPlaceName = latestLocation?.placeName || (latestLocation ? await resolvePlaceNameFromGps(latestLocation.latitude, latestLocation.longitude, shuttle.id) : null);
+
+      return {
+        id: shuttle.id,
+        name: shuttle.name,
+        status: shuttle.status,
+        currentRouteId: shuttle.currentRouteId,
+        routeName: shuttle.currentRoute?.name || null,
+        routeStart: shuttle.currentRoute?.startLocation || null,
+        routeEnd: shuttle.currentRoute?.endLocation || null,
+        latitude: latestLocation?.latitude ?? null,
+        longitude: latestLocation?.longitude ?? null,
+        placeName: resolvedPlaceName || null,
+        recordedAt: latestLocation?.recordedAt || null,
+        driverName: shuttle.driver?.name || null,
+        driverPhone: shuttle.driverPhone || null,
+      };
+    }));
+
+    return {
+      shuttles: resolvedShuttles,
+      routes: routes.map((route) => ({
+        id: route.id,
+        name: route.name,
+        description: route.description || null,
+        startLocation: route.startLocation || null,
+        endLocation: route.endLocation || null,
+        active: route.active,
+        stops: route.stops.map(({ stop, stopOrder }) => ({
+          stopOrder,
+          id: stop.id,
+          name: stop.name,
+          latitude: stop.latitude,
+          longitude: stop.longitude,
+        })),
       })),
-    })),
-  }));
+    };
+  });
 }
 
 function buildFallbackResponse(message, snapshot) {
