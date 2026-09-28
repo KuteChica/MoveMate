@@ -150,7 +150,16 @@ function Representative() {
           <div className="mt-4 space-y-3">
             <input className="w-full rounded-md border border-slate-300 bg-white px-3 py-2" placeholder="Driver name" value={driverForm.name} onChange={(event) => setDriverForm({ ...driverForm, name: event.target.value })} required />
             <input className="w-full rounded-md border border-slate-300 bg-white px-3 py-2" type="email" placeholder="Driver email" value={driverForm.email} onChange={(event) => setDriverForm({ ...driverForm, email: event.target.value })} required />
-            <input className="w-full rounded-md border border-slate-300 bg-white px-3 py-2" type="password" minLength={6} placeholder="Temporary password" value={driverForm.password} onChange={(event) => setDriverForm({ ...driverForm, password: event.target.value })} required />
+            <PasswordField
+              id="driver-password"
+              name="driver-password"
+              value={driverForm.password}
+              onChange={(event) => setDriverForm({ ...driverForm, password: event.target.value })}
+              placeholder="Temporary password"
+              autoComplete="new-password"
+              required
+              inputClassName="bg-white"
+            />
           </div>
           <button className="mt-4 rounded-md bg-teal-700 px-4 py-2 font-medium text-white hover:bg-teal-800" type="submit">Create Driver Account</button>
         </form>}

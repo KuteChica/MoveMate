@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PasswordField from "./PasswordField";
 
 function Form({
   title,
@@ -35,21 +36,15 @@ function Form({
             required
           />
         </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700" htmlFor="password">
-            Password
-          </label>
-          <input
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-100"
-            id="password"
-            name="password"
-            type="password"
-            autoComplete={title.toLowerCase().includes("create") ? "new-password" : "current-password"}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
-        </div>
+        <PasswordField
+          label="Password"
+          id="password"
+          name="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete={title.toLowerCase().includes("create") ? "new-password" : "current-password"}
+          required
+        />
         {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
         {successMessage && <p className="text-sm text-teal-700" role="status">{successMessage}</p>}
         <button
