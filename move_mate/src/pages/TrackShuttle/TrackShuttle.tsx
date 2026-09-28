@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { getRouteStops, getShuttleEta, getShuttles, type ApiEta, type ApiShuttle, type ApiStop } from "../../services/transitApi";
 import MoveMateMap from "../../components/map/MoveMateMap";
+import resolvePlaceNameFromGps from "../../utils/locationLookup";
 
 type Shuttle = {
   id: number;
@@ -16,24 +17,6 @@ type Shuttle = {
   speedKmh: number | null;
   recordedAt: string | null;
 };
-
-async function resolvePlaceNameFromGps(latitude: number | null, longitude: number | null) {
-  if (latitude === null || longitude === null || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-    return null;
-  }
-
-  try {
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
-      headers: { "User-Agent": "MoveMate/1.0 campus shuttle tracker" },
-    });
-    if (!response.ok) return null;
-    const result = await response.json();
-    const address = result?.address || {};
-    return address.road || address.neighbourhood || address.suburb || address.city_district || result?.display_name || null;
-  } catch {
-    return null;
-  }
-}
 
 function formatGps(value: number | null) {
   if (value === null || Number.isNaN(value)) return "Location unavailable";
@@ -104,7 +87,7 @@ function TrackShuttle() {
     };
 
     loadShuttles();
-    const timer = window.setInterval(loadShuttles, 10000);
+    const timer = window.setInterval(loadShuttles, 30000);
     return () => window.clearInterval(timer);
   }, [searchParams]);
 

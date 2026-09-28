@@ -9,7 +9,7 @@ function BusStatus() {
   useEffect(() => {
     const load = () => getShuttles().then(setShuttles).catch((requestError: Error) => setError(requestError.message));
     load();
-    const timer = window.setInterval(load, 15000);
+    const timer = window.setInterval(load, 30000);
     return () => window.clearInterval(timer);
   }, []);
 

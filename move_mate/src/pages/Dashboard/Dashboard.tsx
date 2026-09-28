@@ -3,6 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import AIBotLauncher from "../../components/AIBotLauncher";
 import { useAuth } from "../../context/AuthContext";
 import { getShuttles, type ApiShuttle } from "../../services/transitApi";
+import resolvePlaceNameFromGps from "../../utils/locationLookup";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -10,24 +11,6 @@ function getGreeting() {
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
-}
-
-async function resolvePlaceNameFromGps(latitude: number | null, longitude: number | null) {
-  if (latitude === null || longitude === null || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-    return null;
-  }
-
-  try {
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
-      headers: { "User-Agent": "MoveMate/1.0 campus shuttle tracker" },
-    });
-    if (!response.ok) return null;
-    const result = await response.json();
-    const address = result?.address || {};
-    return address.road || address.neighbourhood || address.suburb || address.city_district || result?.display_name || null;
-  } catch {
-    return null;
-  }
 }
 
 function Dashboard() {
@@ -56,7 +39,7 @@ function Dashboard() {
     };
 
     loadShuttles();
-    const intervalId = window.setInterval(loadShuttles, 15000);
+    const intervalId = window.setInterval(loadShuttles, 30000);
     return () => window.clearInterval(intervalId);
   }, []);
 
