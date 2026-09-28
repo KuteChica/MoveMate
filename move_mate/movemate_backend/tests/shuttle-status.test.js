@@ -22,3 +22,25 @@ test('maintenance should stay maintenance even with fresh GPS', () => {
 
   assert.equal(status, 'maintenance');
 });
+
+test('AI fallback should match the live notification wording for shuttle location', () => {
+  const response = aiRouter.buildFallbackResponse('Where is TF right now?', {
+    routes: [],
+    shuttles: [{
+      id: 1,
+      name: 'TF',
+      status: 'active',
+      currentRouteId: 2,
+      routeName: 'Main Campus Route',
+      latitude: 5.6519,
+      longitude: -0.1871,
+      placeName: 'Haile Selassie Road',
+      recordedAt: new Date().toISOString(),
+    }],
+    notifications: [],
+  });
+
+  assert.match(response, /TF is currently at Haile Selassie Road/i);
+  assert.match(response, /Main Campus Route/i);
+  assert.doesNotMatch(response, /was last reported/i);
+});

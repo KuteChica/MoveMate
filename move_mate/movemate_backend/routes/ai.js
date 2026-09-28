@@ -155,6 +155,20 @@ function buildSnapshot() {
   });
 }
 
+function formatLiveLocationReply(shuttle) {
+  if (!shuttle) return "No shuttle data is currently available.";
+
+  if (shuttle.placeName) {
+    return `${shuttle.name} is currently at ${shuttle.placeName}.`;
+  }
+
+  if (shuttle.latitude !== null && shuttle.longitude !== null) {
+    return `${shuttle.name} is currently on the move at ${Number(shuttle.latitude).toFixed(4)}, ${Number(shuttle.longitude).toFixed(4)}.`;
+  }
+
+  return `${shuttle.name} is currently on the move.`;
+}
+
 function buildFallbackResponse(message, snapshot) {
   const lower = message.toLowerCase();
   const routes = snapshot.routes || [];
@@ -169,11 +183,10 @@ function buildFallbackResponse(message, snapshot) {
   }
 
   if (namedShuttle && lower.includes("where")) {
-    if (namedShuttle.latitude && namedShuttle.longitude && namedShuttle.placeName) {
-      return `${namedShuttle.name} was last reported near ${namedShuttle.placeName}.`;
-    }
     if (namedShuttle.latitude && namedShuttle.longitude) {
-      return `${namedShuttle.name} has a recent GPS point recorded, but its friendly place name is not currently available.`;
+      const baseReply = formatLiveLocationReply(namedShuttle);
+      const routeDetail = namedShuttle.routeName ? ` It is on the ${namedShuttle.routeName} route.` : "";
+      return `${baseReply}${routeDetail}`;
     }
     return `${namedShuttle.name} currently has no live location reported in MoveMate.`;
   }
@@ -237,10 +250,12 @@ function buildFallbackResponse(message, snapshot) {
     if (!match) {
       return "I could not match that shuttle question to a shuttle in the current MoveMate records.";
     }
-    if (!match.latitude || !match.longitude || !match.placeName) {
+    if (!match.latitude || !match.longitude) {
       return `${match.name} currently has no live location reported in MoveMate.`;
     }
-    return `${match.name} was last reported near ${match.placeName}.`;
+    const baseReply = formatLiveLocationReply(match);
+    const routeDetail = match.routeName ? ` It is on the ${match.routeName} route.` : "";
+    return `${baseReply}${routeDetail}`;
   }
 
   if (lower.includes("nearest")) {
@@ -362,3 +377,4 @@ router.post("/chat", protect, async (req, res) => {
 
 module.exports = router;
 module.exports.getShuttleStatus = getShuttleStatus;
+module.exports.buildFallbackResponse = buildFallbackResponse;
