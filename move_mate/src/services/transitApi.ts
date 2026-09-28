@@ -184,10 +184,10 @@ export async function getLocationHistory(shuttleId: number) {
   return response.locations;
 }
 
-export async function askAiAssistant(message: string) {
-  return request<{ success: boolean; source?: string; message: string }>("/api/ai/chat", {
+export async function askAiAssistant(message: string, studentLocation?: { latitude: number; longitude: number } | null) {
+  return request<{ success: boolean; source?: string; message: string }>('/api/ai/chat', {
     method: "POST",
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, studentLocation: studentLocation ?? null }),
   });
 }
 

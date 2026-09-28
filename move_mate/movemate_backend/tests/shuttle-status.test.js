@@ -44,3 +44,27 @@ test('AI fallback should show only the place name for a live shuttle location', 
   assert.doesNotMatch(response, /Main Campus Route/i);
   assert.doesNotMatch(response, /5\.6519|0\.1871|was last reported/i);
 });
+
+test('nearest shuttle logic should choose the closest live shuttle from student coordinates', () => {
+  const shuttles = [
+    { id: 1, name: 'Bani', status: 'active', latitude: 5.6510, longitude: -0.1880, placeName: 'Library', recordedAt: new Date().toISOString() },
+    { id: 2, name: 'TF', status: 'active', latitude: 5.6600, longitude: -0.1900, placeName: 'Main Gate', recordedAt: new Date().toISOString() },
+  ];
+
+  const nearest = aiRouter.getNearestShuttle(shuttles, { latitude: 5.6500, longitude: -0.1860 });
+
+  assert.ok(nearest);
+  assert.equal(nearest.name, 'Bani');
+});
+
+test('AI fallback should say when there are no active shuttles to compare', () => {
+  const response = aiRouter.buildFallbackResponse('Which shuttle is closest to me?', {
+    routes: [],
+    shuttles: [
+      { id: 1, name: 'Bani', status: 'inactive', latitude: null, longitude: null, placeName: null, recordedAt: null },
+    ],
+    notifications: [],
+  }, { latitude: 5.6500, longitude: -0.1860 });
+
+  assert.match(response, /no active shuttles/i);
+});

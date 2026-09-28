@@ -199,7 +199,18 @@ function TrackShuttle() {
         </div>
 
         <div className="order-1 min-h-[22rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm sm:min-h-[27rem] lg:order-2">
-          <MoveMateMap shuttle={{ name: shuttle.name, latitude: shuttle.latitude, longitude: shuttle.longitude, recordedAt: shuttle.recordedAt }} stops={stops} onStudentLocationChange={setStudentLocation} />
+          <MoveMateMap
+            shuttles={shuttles.map((item) => ({
+              id: item.id,
+              name: item.name,
+              latitude: item.latitude,
+              longitude: item.longitude,
+              recordedAt: item.recordedAt,
+            }))}
+            selectedShuttleId={Number(selectedShuttleId)}
+            stops={stops}
+            onStudentLocationChange={setStudentLocation}
+          />
           <div className="flex items-center justify-between gap-4 border-t border-slate-100 bg-white px-5 py-4">
             <div><p className="text-sm font-semibold text-teal-800">{shuttle.name}</p><p className="mt-1 text-sm text-slate-600">Live driver location</p></div>
           </div>

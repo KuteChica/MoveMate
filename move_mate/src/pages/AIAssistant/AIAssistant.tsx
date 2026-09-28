@@ -48,7 +48,20 @@ function AIAssistant() {
     setLoading(true);
 
     try {
-      const response = await askAiAssistant(trimmed);
+      let studentLocation: { latitude: number; longitude: number } | null = null;
+      const requiresLocation = /closest|nearest|distance|from me|my location|where am i/i.test(trimmed);
+
+      if (requiresLocation && navigator.geolocation) {
+        studentLocation = await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+            () => resolve(null),
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+          );
+        });
+      }
+
+      const response = await askAiAssistant(trimmed, studentLocation);
       const assistantMessage: ChatMessage = {
         id: `${Date.now()}-assistant`,
         role: "assistant",

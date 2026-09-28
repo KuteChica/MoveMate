@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 import type { ApiStop } from "../../services/transitApi";
 
 type ShuttleMapData = {
+  id?: number;
   name: string;
   latitude: number | null;
   longitude: number | null;
@@ -12,7 +13,9 @@ type ShuttleMapData = {
 };
 
 type MoveMateMapProps = {
-  shuttle: ShuttleMapData;
+  shuttle?: ShuttleMapData;
+  shuttles?: ShuttleMapData[];
+  selectedShuttleId?: number | null;
   stops: ApiStop[];
   showStudentLocation?: boolean;
   onStudentLocationChange?: (location: [number, number]) => void;
@@ -20,17 +23,23 @@ type MoveMateMapProps = {
 
 const campusCenter: LatLngExpression = [5.6508, -0.1869];
 
-function createMarkerIcon(color: string, symbol: string, isBus = false) {
+function createMarkerIcon(color: string, symbol: string, label?: string, isBus = true) {
+  const labelMarkup = label ? `<div style="font-size:10px;line-height:1.1;font-weight:700;letter-spacing:0.04em;color:#0f172a;background:rgba(255,255,255,0.88);padding:3px 6px;border-radius:999px;box-shadow:0 2px 8px rgba(15,23,42,0.15);margin-bottom:4px;white-space:nowrap;">${label}</div>` : "";
+
   return L.divIcon({
     className: "movemate-map-marker",
-    html: `<span style="display:flex;align-items:center;justify-content:center;width:40px;height:40px;border:3px solid white;border-radius:${isBus ? '12px' : '50%'};background:${color};color:white;font-weight:700;font-size:${isBus ? '22px' : '14px'};box-shadow:0 2px 6px rgba(15,23,42,.35)">${symbol}</span>`,
-    iconAnchor: [20, 20],
-    popupAnchor: [0, -18],
+    html: `
+      <div style="display:flex;flex-direction:column;align-items:center;transform:translateY(-4px);">
+        ${labelMarkup}
+        <span style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;border:3px solid white;border-radius:${isBus ? '12px' : '50%'};background:${color};color:white;font-weight:700;font-size:${isBus ? '18px' : '14px'};box-shadow:0 2px 6px rgba(15,23,42,.35)">${symbol}</span>
+      </div>
+    `,
+    iconAnchor: [19, 32],
+    popupAnchor: [0, -20],
   });
 }
 
-const shuttleIcon = createMarkerIcon("#0f766e", "🚌", true);
-const studentIcon = createMarkerIcon("#1d4ed8", "YOU");
+const studentIcon = createMarkerIcon("#1d4ed8", "YOU", undefined, false);
 
 function MapInteractionTracker({ interacted }: { interacted: React.MutableRefObject<boolean> }) {
   useMapEvents({
@@ -40,7 +49,7 @@ function MapInteractionTracker({ interacted }: { interacted: React.MutableRefObj
   return null;
 }
 
-function FitMapToData({ shuttle, stops, fitKey }: { shuttle: ShuttleMapData; stops: ApiStop[]; fitKey: string }) {
+function FitMapToData({ shuttles, stops, fitKey }: { shuttles: ShuttleMapData[]; stops: ApiStop[]; fitKey: string }) {
   const map = useMap();
   const interacted = useRef(false);
   const fittedKey = useRef("");
@@ -49,7 +58,11 @@ function FitMapToData({ shuttle, stops, fitKey }: { shuttle: ShuttleMapData; sto
     if (interacted.current || fittedKey.current === fitKey) return;
 
     const points: LatLngExpression[] = stops.map((stop) => [stop.latitude, stop.longitude]);
-    if (shuttle.latitude !== null && shuttle.longitude !== null) points.push([shuttle.latitude, shuttle.longitude]);
+    shuttles.forEach((shuttle) => {
+      if (shuttle.latitude !== null && shuttle.longitude !== null) {
+        points.push([shuttle.latitude, shuttle.longitude]);
+      }
+    });
     if (points.length === 0) return;
 
     fittedKey.current = fitKey;
@@ -58,7 +71,7 @@ function FitMapToData({ shuttle, stops, fitKey }: { shuttle: ShuttleMapData; sto
     } else {
       map.fitBounds(L.latLngBounds(points), { padding: [28, 28], maxZoom: 16 });
     }
-  }, [fitKey, map, shuttle.latitude, shuttle.longitude, stops]);
+  }, [fitKey, map, shuttles, stops]);
 
   return <MapInteractionTracker interacted={interacted} />;
 }
@@ -76,9 +89,14 @@ function distanceInKm(first: [number, number], second: [number, number]) {
   return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function MoveMateMap({ shuttle, stops, showStudentLocation = true, onStudentLocationChange }: MoveMateMapProps) {
+function MoveMateMap({ shuttle, shuttles, selectedShuttleId, stops, showStudentLocation = true, onStudentLocationChange }: MoveMateMapProps) {
   const [studentLocation, setStudentLocation] = useState<[number, number] | null>(null);
   const [locationError, setLocationError] = useState("");
+
+  const liveShuttles = useMemo(() => {
+    const source = shuttles && shuttles.length > 0 ? shuttles : shuttle ? [shuttle] : [];
+    return source.filter((item) => item.latitude !== null && item.longitude !== null);
+  }, [shuttle, shuttles]);
 
   useEffect(() => {
     if (!showStudentLocation) return undefined;
@@ -105,11 +123,12 @@ function MoveMateMap({ shuttle, stops, showStudentLocation = true, onStudentLoca
     () => stops.map((stop) => [stop.latitude, stop.longitude]),
     [stops],
   );
-  const shuttlePosition: [number, number] | null = shuttle.latitude !== null && shuttle.longitude !== null
-    ? [shuttle.latitude, shuttle.longitude]
+  const primaryShuttle = liveShuttles.find((item) => item.id === selectedShuttleId) ?? liveShuttles[0] ?? shuttle ?? null;
+  const shuttlePosition: [number, number] | null = primaryShuttle && primaryShuttle.latitude !== null && primaryShuttle.longitude !== null
+    ? [primaryShuttle.latitude, primaryShuttle.longitude]
     : null;
   const distance = studentLocation && shuttlePosition ? distanceInKm(studentLocation, shuttlePosition) : null;
-  const fitKey = `${shuttle.name}-${stops.map((stop) => stop.id).join(",")}`;
+  const fitKey = `${liveShuttles.map((item) => `${item.id ?? item.name}-${item.latitude ?? "n"}-${item.longitude ?? "n"}`).join("|")}-${stops.map((stop) => stop.id).join(",")}`;
 
   return (
     <div className="relative h-full min-h-[23rem] w-full">
@@ -118,17 +137,25 @@ function MoveMateMap({ shuttle, stops, showStudentLocation = true, onStudentLoca
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FitMapToData shuttle={shuttle} stops={stops} fitKey={fitKey} />
+        <FitMapToData shuttles={liveShuttles} stops={stops} fitKey={fitKey} />
         {routePath.length > 1 && <Polyline positions={routePath} pathOptions={{ color: "#0f766e", weight: 5, opacity: 0.8 }} />}
-        {shuttlePosition && (
-          <Marker position={shuttlePosition} icon={shuttleIcon}>
-            <Popup><strong>{shuttle.name}</strong><br />{shuttle.recordedAt ? `Updated ${new Date(shuttle.recordedAt).toLocaleTimeString()}` : "GPS update received"}</Popup>
-          </Marker>
-        )}
+        {liveShuttles.map((activeShuttle) => {
+          const selected = activeShuttle.id === selectedShuttleId || (!selectedShuttleId && activeShuttle.id === primaryShuttle?.id);
+          const position: [number, number] = [activeShuttle.latitude ?? 0, activeShuttle.longitude ?? 0];
+
+          return (
+            <Marker key={activeShuttle.id ?? `${activeShuttle.name}-${activeShuttle.latitude}-${activeShuttle.longitude}`} position={position} icon={createMarkerIcon(selected ? "#0f766e" : "#0b5c6b", "🚌", activeShuttle.name, true)}>
+              <Popup>
+                <strong>{activeShuttle.name}</strong><br />
+                {activeShuttle.recordedAt ? `Updated ${new Date(activeShuttle.recordedAt).toLocaleTimeString()}` : "GPS update received"}
+              </Popup>
+            </Marker>
+          );
+        })}
         {showStudentLocation && studentLocation && <Marker position={studentLocation} icon={studentIcon}><Popup>You are here</Popup></Marker>}
       </MapContainer>
       <div className="pointer-events-none absolute left-3 top-3 z-[1000] max-w-[calc(100%-1.5rem)] rounded-md bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-md">
-        <p>{shuttlePosition ? "Shuttle GPS active" : "Waiting for shuttle GPS"}</p>
+        <p>{liveShuttles.length > 0 ? `${liveShuttles.length} live shuttle${liveShuttles.length > 1 ? "s" : ""}` : "Waiting for shuttle GPS"}</p>
         {showStudentLocation && distance !== null && <p className="mt-1 font-normal text-slate-600">You are {formatDistance(distance)}</p>}
         {showStudentLocation && locationError && <p className="mt-1 font-normal text-amber-700">{locationError}</p>}
       </div>
