@@ -44,11 +44,11 @@ async function resolvePlaceNameFromGps(latitude, longitude, shuttleId) {
 }
 
 function listActiveShuttles(shuttles) {
-  const active = shuttles.filter((shuttle) => shuttle.status === "active" && shuttle.locations?.[0]);
+  const active = shuttles.filter((shuttle) => getShuttleStatus(shuttle) === "active" && shuttle.locations?.[0]);
   return active.length ? active.map((shuttle) => ({
     name: shuttle.name,
     route: shuttle.currentRoute?.name || "No route assigned",
-    status: shuttle.status,
+    status: getShuttleStatus(shuttle),
     location: shuttle.locations?.[0]?.placeName || "Location not available",
   })) : [];
 }
@@ -56,9 +56,13 @@ function listActiveShuttles(shuttles) {
 function getShuttleStatus(shuttle) {
   if (!shuttle) return "inactive";
   if (shuttle.status === "maintenance") return "maintenance";
-  if (!shuttle.recordedAt) return "inactive";
-  const ageMinutes = (Date.now() - new Date(shuttle.recordedAt).getTime()) / 60000;
-  return ageMinutes <= 2 ? "active" : "inactive";
+
+  if (shuttle.recordedAt) {
+    const ageMinutes = (Date.now() - new Date(shuttle.recordedAt).getTime()) / 60000;
+    if (ageMinutes <= 2) return "active";
+  }
+
+  return shuttle.status === "active" ? "active" : "inactive";
 }
 
 function getDemoBaniLocation() {
@@ -98,7 +102,11 @@ function buildSnapshot() {
         stops: { orderBy: { stopOrder: "asc" }, include: { stop: true } },
       },
     }),
-  ]).then(async ([shuttles, routes]) => {
+    prisma.notification.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 12,
+    }),
+  ]).then(async ([shuttles, routes, notifications]) => {
     const resolvedShuttles = await Promise.all(shuttles.map(async (shuttle) => {
       const latestLocation = shuttle.locations?.[0];
       const resolvedPlaceName = latestLocation?.placeName || (latestLocation ? await resolvePlaceNameFromGps(latestLocation.latitude, latestLocation.longitude, shuttle.id) : null);
@@ -106,7 +114,7 @@ function buildSnapshot() {
       return {
         id: shuttle.id,
         name: shuttle.name,
-        status: shuttle.status,
+        status: getShuttleStatus({ status: shuttle.status, recordedAt: latestLocation?.recordedAt || null }),
         currentRouteId: shuttle.currentRouteId,
         routeName: shuttle.currentRoute?.name || null,
         routeStart: shuttle.currentRoute?.startLocation || null,
@@ -137,6 +145,12 @@ function buildSnapshot() {
           longitude: stop.longitude,
         })),
       })),
+      notifications: notifications.map((notification) => ({
+        id: notification.id,
+        title: notification.title,
+        message: notification.message,
+        createdAt: notification.createdAt,
+      })),
     };
   });
 }
@@ -145,8 +159,14 @@ function buildFallbackResponse(message, snapshot) {
   const lower = message.toLowerCase();
   const routes = snapshot.routes || [];
   const shuttles = snapshot.shuttles || [];
+  const notifications = snapshot.notifications || [];
   const activeShuttles = shuttles.filter((shuttle) => getShuttleStatus(shuttle) === "active");
   const namedShuttle = findShuttleByName(message, shuttles);
+
+  if ((lower.includes("notification") || lower.includes("update") || lower.includes("alert")) && notifications.length) {
+    const latest = notifications.slice(0, 3);
+    return `Recent MoveMate updates: ${latest.map((notification) => `${notification.title}: ${notification.message}`).join("; ")}.`;
+  }
 
   if (namedShuttle && lower.includes("where")) {
     if (namedShuttle.latitude && namedShuttle.longitude && namedShuttle.placeName) {
@@ -341,3 +361,4 @@ router.post("/chat", protect, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.getShuttleStatus = getShuttleStatus;

@@ -40,13 +40,24 @@ function Dashboard() {
   if (user?.role === "admin" || user?.role === "representative") return <Navigate to="/representative" replace />;
 
   useEffect(() => {
-    getShuttles().then((items) => {
-      setShuttles(items);
-      setSelectedShuttleId((current) => current || String(items[0]?.id || ""));
-    }).catch(() => {
-      setShuttles([]);
-      setSelectedShuttleId("");
-    });
+    const loadShuttles = () => {
+      getShuttles().then((items) => {
+        setShuttles(items);
+        setSelectedShuttleId((current) => {
+          if (current && items.some((item) => String(item.id) === current)) {
+            return current;
+          }
+          return String(items[0]?.id || "");
+        });
+      }).catch(() => {
+        setShuttles([]);
+        setSelectedShuttleId("");
+      });
+    };
+
+    loadShuttles();
+    const intervalId = window.setInterval(loadShuttles, 15000);
+    return () => window.clearInterval(intervalId);
   }, []);
 
   const shuttle = shuttles.find((item) => String(item.id) === selectedShuttleId) || shuttles[0] || null;

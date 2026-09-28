@@ -26,16 +26,21 @@ async function reverseGeocode(latitude, longitude, shuttleId) {
   }
 }
 
+function getLiveShuttleStatus(status, recordedAt) {
+  if (status === "maintenance") return "maintenance";
+  if (recordedAt && Date.now() - new Date(recordedAt).getTime() <= 120000) return "active";
+  return status === "active" ? "active" : "inactive";
+}
+
 async function serializeShuttle(shuttle) {
   const location = shuttle.locations?.[0];
-  const locationIsFresh = location?.recordedAt && Date.now() - new Date(location.recordedAt).getTime() <= 120000;
   const hasLocation = !!location && location.latitude !== null && location.longitude !== null;
   const placeName = location?.placeName || (hasLocation ? await reverseGeocode(location.latitude, location.longitude, shuttle.id) : null);
   return {
     id: shuttle.id,
     name: shuttle.name,
     plate_number: shuttle.plateNumber,
-    status: shuttle.status === "maintenance" ? "maintenance" : locationIsFresh ? "active" : "inactive",
+    status: getLiveShuttleStatus(shuttle.status, location?.recordedAt),
     configured_status: shuttle.status,
     current_route_id: shuttle.currentRouteId,
     route_name: shuttle.currentRoute?.name || null,
@@ -362,3 +367,4 @@ router.patch("/:id/status", protect, authorize("driver", "representative", "admi
 });
 
 module.exports = router;
+module.exports.getLiveShuttleStatus = getLiveShuttleStatus;
