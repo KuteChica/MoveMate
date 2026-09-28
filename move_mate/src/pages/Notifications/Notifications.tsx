@@ -29,6 +29,10 @@ function getLocationDescription(shuttle: ApiShuttle) {
     return `${shuttle.name} is currently at ${shuttle.place_name}.`;
   }
 
+  if (shuttle.latitude !== null && shuttle.longitude !== null) {
+    return `${shuttle.name} is currently on the move.`;
+  }
+
   return `${shuttle.name} is currently on the move.`;
 }
 
