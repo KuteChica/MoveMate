@@ -59,13 +59,13 @@ function Hero() {
 
   return (
     <section className="overflow-hidden bg-[#f2f8f8]" aria-labelledby="hero-title">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 sm:px-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8 lg:px-12 lg:py-24">
+      <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8 lg:px-12 lg:py-24">
         <div className="max-w-xl">
-          <p className="mb-5 text-xs font-bold uppercase tracking-[0.18em] text-[#007d7b]">Campus mobility, simplified</p>
-          <h1 id="hero-title" className="max-w-lg text-4xl font-black leading-[1.08] tracking-[-0.04em] text-[#173c41] sm:text-5xl">Track Your Campus Shuttle in Real Time</h1>
-          <p className="mt-6 max-w-md text-sm leading-7 text-[#607a7c] sm:text-base">The smart campus mobility app for students. Track buses in real-time, get smart schedule alerts, and never wait in the cold again.</p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link to={isAuthenticated ? "/dashboard" : "/track-shuttle"} className="rounded-lg bg-[#007d7b] px-5 py-3 text-xs font-bold text-white shadow-[0_8px_18px_rgba(0,125,123,0.2)] transition hover:bg-[#006966]">{isAuthenticated ? "Go to Dashboard" : "Track Shuttle"}</Link>
+          <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.18em] text-[#007d7b] sm:text-xs">Campus mobility, simplified</p>
+          <h1 id="hero-title" className="max-w-lg text-3xl font-black leading-[1.08] tracking-[-0.04em] text-[#173c41] sm:text-4xl lg:text-5xl">Track Your Campus Shuttle in Real Time</h1>
+          <p className="mt-4 max-w-md text-sm leading-6 text-[#607a7c] sm:mt-6 sm:text-base">The smart campus mobility app for students. Track buses in real time, get updates fast, and never stand around guessing.</p>
+          <div className="mt-6 flex flex-wrap gap-3 sm:mt-8">
+            <Link to={isAuthenticated ? "/dashboard" : "/track-shuttle"} className="rounded-xl bg-[#007d7b] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_18px_rgba(0,125,123,0.2)] transition hover:bg-[#006966]">{isAuthenticated ? "Go to Dashboard" : "Track Shuttle"}</Link>
           </div>
         </div>
         <div className="flex justify-center lg:justify-end"><PhoneMockup /></div>

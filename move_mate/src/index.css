@@ -1,23 +1,78 @@
 @import "tailwindcss";
 
 :root {
-	font-family: "Avenir Next", "Segoe UI", sans-serif;
-	color: #173c41;
-	background: #ffffff;
-	font-synthesis: none;
-	text-rendering: optimizeLegibility;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  color: #173c41;
+  background: #f4f9f8;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html {
-	scroll-behavior: smooth;
+  scroll-behavior: smooth;
+}
+
+html, body, #root {
+  min-height: 100%;
 }
 
 body {
-	min-width: 320px;
-	margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: linear-gradient(180deg, #f7fbfa 0%, #eef5f4 100%);
+  color: #173c41;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 button,
-a {
-	-webkit-tap-highlight-color: transparent;
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+  font: inherit;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  transition: all 0.2s ease;
+}
+
+main {
+  min-height: calc(100vh - 72px);
+}
+
+@media (max-width: 640px) {
+  main {
+    min-height: auto;
+  }
+
+  .auth-layout main > section,
+  .auth-layout main > div {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

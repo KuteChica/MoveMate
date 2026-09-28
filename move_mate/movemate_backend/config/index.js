@@ -22,4 +22,13 @@ module.exports = {
     apiBaseUrl: process.env.AI_API_BASE_URL || "https://api.openai.com/v1",
     model: process.env.AI_MODEL || "gpt-4o-mini",
   },
+  email: {
+    to: process.env.FEEDBACK_EMAIL_TO || "bridgettossou13@gmail.com",
+    from: process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@movemate.app",
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: String(process.env.SMTP_SECURE || "false").toLowerCase() === "true",
+    user: process.env.SMTP_USER || "",
+    pass: process.env.SMTP_PASS || "",
+  },
 };
