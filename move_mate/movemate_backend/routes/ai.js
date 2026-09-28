@@ -162,10 +162,6 @@ function formatLiveLocationReply(shuttle) {
     return `${shuttle.name} is currently at ${shuttle.placeName}.`;
   }
 
-  if (shuttle.latitude !== null && shuttle.longitude !== null) {
-    return `${shuttle.name} is currently on the move at ${Number(shuttle.latitude).toFixed(4)}, ${Number(shuttle.longitude).toFixed(4)}.`;
-  }
-
   return `${shuttle.name} is currently on the move.`;
 }
 
@@ -184,9 +180,7 @@ function buildFallbackResponse(message, snapshot) {
 
   if (namedShuttle && lower.includes("where")) {
     if (namedShuttle.latitude && namedShuttle.longitude) {
-      const baseReply = formatLiveLocationReply(namedShuttle);
-      const routeDetail = namedShuttle.routeName ? ` It is on the ${namedShuttle.routeName} route.` : "";
-      return `${baseReply}${routeDetail}`;
+      return formatLiveLocationReply(namedShuttle);
     }
     return `${namedShuttle.name} currently has no live location reported in MoveMate.`;
   }
@@ -253,9 +247,7 @@ function buildFallbackResponse(message, snapshot) {
     if (!match.latitude || !match.longitude) {
       return `${match.name} currently has no live location reported in MoveMate.`;
     }
-    const baseReply = formatLiveLocationReply(match);
-    const routeDetail = match.routeName ? ` It is on the ${match.routeName} route.` : "";
-    return `${baseReply}${routeDetail}`;
+    return formatLiveLocationReply(match);
   }
 
   if (lower.includes("nearest")) {

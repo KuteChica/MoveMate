@@ -23,7 +23,7 @@ test('maintenance should stay maintenance even with fresh GPS', () => {
   assert.equal(status, 'maintenance');
 });
 
-test('AI fallback should match the live notification wording for shuttle location', () => {
+test('AI fallback should show only the place name for a live shuttle location', () => {
   const response = aiRouter.buildFallbackResponse('Where is TF right now?', {
     routes: [],
     shuttles: [{
@@ -41,6 +41,6 @@ test('AI fallback should match the live notification wording for shuttle locatio
   });
 
   assert.match(response, /TF is currently at Haile Selassie Road/i);
-  assert.match(response, /Main Campus Route/i);
-  assert.doesNotMatch(response, /was last reported/i);
+  assert.doesNotMatch(response, /Main Campus Route/i);
+  assert.doesNotMatch(response, /5\.6519|0\.1871|was last reported/i);
 });
