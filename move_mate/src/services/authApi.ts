@@ -67,10 +67,10 @@ export async function getCurrentUser(): Promise<AuthSession> {
   }
 
   try {
-    const response = await request<{ user: AuthUser }>("/me", {
+    const response = await request<{ user: AuthUser; token?: string }>("/me", {
       headers: { Authorization: `Bearer ${token}` },
     });
-    const session = { user: response.user, token };
+    const session = { user: response.user, token: response.token || token };
     saveSession(session);
     return session;
   } catch (error) {

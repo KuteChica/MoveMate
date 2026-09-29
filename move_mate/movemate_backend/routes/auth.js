@@ -165,7 +165,10 @@ router.get("/me", protect, async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    res.json({ user: { ...user, created_at: user.createdAt } });
+    res.json({
+      user: { ...user, created_at: user.createdAt },
+      token: createToken(user),
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Could not load user." });
