@@ -31,8 +31,8 @@ async function reverseGeocode(latitude, longitude, shuttleId) {
 
 function getLiveShuttleStatus(status, recordedAt) {
   if (status === "maintenance") return "maintenance";
-  if (recordedAt && Date.now() - new Date(recordedAt).getTime() <= 120000) return "active";
-  return status === "active" ? "active" : "inactive";
+  const locationAge = recordedAt ? Date.now() - new Date(recordedAt).getTime() : Infinity;
+  return locationAge >= 0 && locationAge <= 120000 ? "active" : "inactive";
 }
 
 async function serializeShuttle(shuttle) {

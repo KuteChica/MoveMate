@@ -2,6 +2,26 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const aiRouter = require('../routes/ai.js');
+const shuttleRouter = require('../routes/shuttles.js');
+
+test('stored active status is inactive without fresh GPS', () => {
+  const staleTimestamp = new Date(Date.now() - 121 * 1000).toISOString();
+
+  assert.equal(shuttleRouter.getLiveShuttleStatus('active', staleTimestamp), 'inactive');
+  assert.equal(shuttleRouter.getLiveShuttleStatus('active', null), 'inactive');
+});
+
+test('fresh GPS activates an inactive shuttle but future timestamps do not', () => {
+  const freshTimestamp = new Date(Date.now() - 60 * 1000).toISOString();
+  const futureTimestamp = new Date(Date.now() + 60 * 1000).toISOString();
+
+  assert.equal(shuttleRouter.getLiveShuttleStatus('inactive', freshTimestamp), 'active');
+  assert.equal(shuttleRouter.getLiveShuttleStatus('active', futureTimestamp), 'inactive');
+});
+
+test('maintenance status is preserved regardless of GPS age', () => {
+  assert.equal(shuttleRouter.getLiveShuttleStatus('maintenance', null), 'maintenance');
+});
 
 test('live GPS should keep a shuttle active even when the stored status is inactive', () => {
   const now = Date.now();

@@ -76,12 +76,7 @@ function Dashboard() {
     };
   }, [shuttle?.id, shuttle?.place_name, shuttle?.latitude, shuttle?.longitude]);
 
-  const isLiveTracking = Boolean(
-    shuttle && (
-      shuttle.status === "active"
-      || (shuttle.recorded_at && Date.now() - new Date(shuttle.recorded_at).getTime() <= 120000)
-    )
-  );
+  const isLiveTracking = shuttle?.status === "active";
   const serviceState = shuttle?.configured_status === "maintenance" ? "maintenance" : isLiveTracking ? "active" : "inactive";
   const serviceStatusText = serviceState === "active" ? "On schedule" : serviceState === "maintenance" ? "Under maintenance" : "Inactive";
   const serviceStatusColor = serviceState === "active" ? "text-emerald-700" : serviceState === "maintenance" ? "text-amber-700" : "text-slate-700";
