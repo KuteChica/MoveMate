@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { Outlet } from "react-router-dom";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
@@ -9,9 +8,7 @@ function UnauthLayout() {
     <Wrapper className="unauth-layout">
       <Navbar />
       <main>
-        <Suspense fallback={<div className="flex min-h-48 items-center justify-center text-sm text-slate-600">Loading page...</div>}>
-          <Outlet />
-        </Suspense>
+        <Outlet />
       </main>
       <Footer />
     </Wrapper>

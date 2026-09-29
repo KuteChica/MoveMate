@@ -49,13 +49,26 @@ function MapInteractionTracker({ interacted }: { interacted: React.MutableRefObj
   return null;
 }
 
-function FitMapToData({ shuttles, stops, fitKey }: { shuttles: ShuttleMapData[]; stops: ApiStop[]; fitKey: string }) {
+function FitMapToData({ shuttles, stops, fitKey, selectedShuttleId }: { shuttles: ShuttleMapData[]; stops: ApiStop[]; fitKey: string; selectedShuttleId?: number | null }) {
   const map = useMap();
   const interacted = useRef(false);
   const fittedKey = useRef("");
+  const previousSelectedShuttleId = useRef(selectedShuttleId);
 
   useEffect(() => {
+    if (previousSelectedShuttleId.current !== selectedShuttleId) {
+      previousSelectedShuttleId.current = selectedShuttleId;
+      interacted.current = false;
+      fittedKey.current = "";
+    }
     if (interacted.current || fittedKey.current === fitKey) return;
+
+    const selectedShuttle = shuttles.find((item) => item.id === selectedShuttleId);
+    if (selectedShuttle && selectedShuttle.latitude !== null && selectedShuttle.longitude !== null) {
+      fittedKey.current = fitKey;
+      map.setView([selectedShuttle.latitude, selectedShuttle.longitude], 16);
+      return;
+    }
 
     const points: LatLngExpression[] = stops.map((stop) => [stop.latitude, stop.longitude]);
     shuttles.forEach((shuttle) => {
@@ -71,7 +84,7 @@ function FitMapToData({ shuttles, stops, fitKey }: { shuttles: ShuttleMapData[];
     } else {
       map.fitBounds(L.latLngBounds(points), { padding: [28, 28], maxZoom: 16 });
     }
-  }, [fitKey, map, shuttles, stops]);
+  }, [fitKey, map, selectedShuttleId, shuttles, stops]);
 
   return <MapInteractionTracker interacted={interacted} />;
 }
@@ -97,6 +110,12 @@ function MoveMateMap({ shuttle, shuttles, selectedShuttleId, stops, showStudentL
     const source = shuttles && shuttles.length > 0 ? shuttles : shuttle ? [shuttle] : [];
     return source.filter((item) => item.latitude !== null && item.longitude !== null);
   }, [shuttle, shuttles]);
+  const selectedShuttle = selectedShuttleId == null
+    ? null
+    : liveShuttles.find((item) => item.id === selectedShuttleId) ?? null;
+  const visibleShuttles = selectedShuttleId == null
+    ? liveShuttles
+    : selectedShuttle ? [selectedShuttle] : [];
 
   useEffect(() => {
     if (!showStudentLocation) return undefined;
@@ -123,12 +142,12 @@ function MoveMateMap({ shuttle, shuttles, selectedShuttleId, stops, showStudentL
     () => stops.map((stop) => [stop.latitude, stop.longitude]),
     [stops],
   );
-  const primaryShuttle = liveShuttles.find((item) => item.id === selectedShuttleId) ?? liveShuttles[0] ?? shuttle ?? null;
+  const primaryShuttle = selectedShuttleId == null ? liveShuttles[0] ?? shuttle ?? null : selectedShuttle;
   const shuttlePosition: [number, number] | null = primaryShuttle && primaryShuttle.latitude !== null && primaryShuttle.longitude !== null
     ? [primaryShuttle.latitude, primaryShuttle.longitude]
     : null;
   const distance = studentLocation && shuttlePosition ? distanceInKm(studentLocation, shuttlePosition) : null;
-  const fitKey = `${liveShuttles.map((item) => `${item.id ?? item.name}-${item.latitude ?? "n"}-${item.longitude ?? "n"}`).join("|")}-${stops.map((stop) => stop.id).join(",")}`;
+  const fitKey = `${selectedShuttleId ?? "all"}-${visibleShuttles.map((item) => `${item.id ?? item.name}-${item.latitude ?? "n"}-${item.longitude ?? "n"}`).join("|")}-${stops.map((stop) => stop.id).join(",")}`;
 
   return (
     <div className="relative h-full min-h-[23rem] w-full">
@@ -137,9 +156,9 @@ function MoveMateMap({ shuttle, shuttles, selectedShuttleId, stops, showStudentL
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FitMapToData shuttles={liveShuttles} stops={stops} fitKey={fitKey} />
+        <FitMapToData shuttles={visibleShuttles} stops={stops} fitKey={fitKey} selectedShuttleId={selectedShuttleId} />
         {routePath.length > 1 && <Polyline positions={routePath} pathOptions={{ color: "#0f766e", weight: 5, opacity: 0.8 }} />}
-        {liveShuttles.map((activeShuttle) => {
+        {visibleShuttles.map((activeShuttle) => {
           const selected = activeShuttle.id === selectedShuttleId || (!selectedShuttleId && activeShuttle.id === primaryShuttle?.id);
           const position: [number, number] = [activeShuttle.latitude ?? 0, activeShuttle.longitude ?? 0];
 
@@ -155,7 +174,7 @@ function MoveMateMap({ shuttle, shuttles, selectedShuttleId, stops, showStudentL
         {showStudentLocation && studentLocation && <Marker position={studentLocation} icon={studentIcon}><Popup>You are here</Popup></Marker>}
       </MapContainer>
       <div className="pointer-events-none absolute left-3 top-3 z-[1000] max-w-[calc(100%-1.5rem)] rounded-md bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-md">
-        <p>{liveShuttles.length > 0 ? `${liveShuttles.length} live shuttle${liveShuttles.length > 1 ? "s" : ""}` : "Waiting for shuttle GPS"}</p>
+        <p>{visibleShuttles.length > 0 ? `${visibleShuttles.length} live shuttle${visibleShuttles.length > 1 ? "s" : ""}` : "Waiting for selected shuttle GPS"}</p>
         {showStudentLocation && distance !== null && <p className="mt-1 font-normal text-slate-600">You are {formatDistance(distance)}</p>}
         {showStudentLocation && locationError && <p className="mt-1 font-normal text-amber-700">{locationError}</p>}
       </div>

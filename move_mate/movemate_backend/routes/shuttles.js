@@ -7,7 +7,7 @@ const reverseGeocodeCache = new Map();
 
 async function reverseGeocode(latitude, longitude, shuttleId) {
   const cached = reverseGeocodeCache.get(shuttleId);
-  if (cached && Date.now() - cached.updatedAt < 60000 && Math.hypot(cached.latitude - latitude, cached.longitude - longitude) < 0.001) {
+  if (cached && Date.now() - cached.updatedAt < 15000 && Math.hypot(cached.latitude - latitude, cached.longitude - longitude) < 0.00005) {
     return cached.placeName;
   }
 
@@ -18,7 +18,10 @@ async function reverseGeocode(latitude, longitude, shuttleId) {
     if (!response.ok) return null;
     const result = await response.json();
     const address = result.address || {};
-    const placeName = address.road || address.neighbourhood || address.suburb || address.city_district || result.display_name || null;
+    const placeName = [result.name, address.amenity, address.building, address.leisure, address.tourism, address.university, address.college, address.school, address.road, address.neighbourhood, address.suburb, address.city_district]
+      .find((candidate) => typeof candidate === "string" && candidate.trim())?.split(",")[0].trim()
+      || result.display_name?.split(",")[0].trim()
+      || null;
     if (placeName) reverseGeocodeCache.set(shuttleId, { latitude, longitude, placeName, updatedAt: Date.now() });
     return placeName;
   } catch {
@@ -34,8 +37,10 @@ function getLiveShuttleStatus(status, recordedAt) {
 
 async function serializeShuttle(shuttle) {
   const location = shuttle.locations?.[0];
-  const hasLocation = !!location && location.latitude !== null && location.longitude !== null;
-  const placeName = location?.placeName || (hasLocation ? await reverseGeocode(location.latitude, location.longitude, shuttle.id) : null);
+  const locationAge = location?.recordedAt ? Date.now() - new Date(location.recordedAt).getTime() : Infinity;
+  const hasLocation = !!location && location.latitude !== null && location.longitude !== null && locationAge >= 0 && locationAge <= 120000;
+  const savedPlaceName = location?.placeName?.split(",")[0].trim();
+  const placeName = hasLocation ? savedPlaceName || await reverseGeocode(location.latitude, location.longitude, shuttle.id) : null;
   return {
     id: shuttle.id,
     name: shuttle.name,
@@ -48,10 +53,10 @@ async function serializeShuttle(shuttle) {
     driver_name: shuttle.driver?.name || null,
     driver_email: shuttle.driver?.email || null,
     driver_phone: shuttle.driverPhone,
-    latitude: location?.latitude ?? null,
-    longitude: location?.longitude ?? null,
+    latitude: hasLocation ? location.latitude : null,
+    longitude: hasLocation ? location.longitude : null,
     place_name: placeName,
-    speed_kmh: location?.speedKmh || null,
+    speed_kmh: hasLocation ? location.speedKmh || null : null,
     recorded_at: location?.recordedAt || null,
     updated_at: shuttle.updatedAt,
   };
@@ -223,7 +228,8 @@ router.get("/:id/eta", protect, async (req, res) => {
     include: { locations: { orderBy: { recordedAt: "desc" }, take: 1 }, currentRoute: { include: { stops: { orderBy: { stopOrder: "asc" }, include: { stop: true } } } } },
   });
   const location = shuttle?.locations?.[0];
-  if (!shuttle || !location) return res.status(404).json({ message: "Shuttle GPS location is not available." });
+  const locationAge = location?.recordedAt ? Date.now() - new Date(location.recordedAt).getTime() : Infinity;
+  if (!shuttle || !location || locationAge < 0 || locationAge > 120000) return res.status(404).json({ message: "Current shuttle GPS location is not available." });
   const stops = shuttle.currentRoute?.stops || [];
   if (!stops.length) return res.json({ shuttle_id: shuttle.id, next_stop: null, estimated_minutes: null, message: "No route stops are configured." });
   const toRadians = (value) => value * Math.PI / 180;

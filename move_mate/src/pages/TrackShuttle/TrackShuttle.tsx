@@ -50,6 +50,7 @@ function TrackShuttle() {
   const [selectedShuttleId, setSelectedShuttleId] = useState("");
   const [error, setError] = useState("");
   const [stops, setStops] = useState<ApiStop[]>([]);
+  const [stopsRouteId, setStopsRouteId] = useState<number | null>(null);
   const [eta, setEta] = useState<ApiEta | null>(null);
   const [studentLocation, setStudentLocation] = useState<[number, number] | null>(null);
   const [searchParams] = useSearchParams();
@@ -94,15 +95,37 @@ function TrackShuttle() {
   const shuttle = shuttles.find((item) => String(item.id) === selectedShuttleId);
 
   useEffect(() => {
-    if (!shuttle) return;
-    setEta(null);
     setStops([]);
-    if (shuttle.routeId) getRouteStops(shuttle.routeId).then(setStops).catch((requestError: Error) => setError(requestError.message));
-    getShuttleEta(shuttle.id).then(setEta).catch(() => setEta(null));
+    setStopsRouteId(null);
+    const routeId = shuttle?.routeId;
+    if (!routeId) return;
+    let active = true;
+    getRouteStops(routeId)
+      .then((items) => {
+        if (active) {
+          setStops(items);
+          setStopsRouteId(routeId);
+        }
+      })
+      .catch((requestError: Error) => { if (active) setError(requestError.message); });
+    return () => { active = false; };
   }, [shuttle?.id, shuttle?.routeId]);
 
-  const nearestStop = shuttle && stops.length && shuttle.latitude !== null && shuttle.longitude !== null
-    ? stops.reduce((nearest, stop) => {
+  useEffect(() => {
+    setEta(null);
+    if (!shuttle) return;
+    let active = true;
+    getShuttleEta(shuttle.id)
+      .then((result) => { if (active && result.shuttle_id === shuttle.id) setEta(result); })
+      .catch(() => { if (active) setEta(null); });
+    return () => { active = false; };
+  }, [shuttle?.id, shuttle?.latitude, shuttle?.longitude, shuttle?.speedKmh]);
+
+  const selectedStops = stopsRouteId === shuttle?.routeId ? stops : [];
+  const selectedEta = shuttle && eta?.shuttle_id === shuttle.id ? eta : null;
+
+  const nearestStop = shuttle && selectedStops.length && shuttle.latitude !== null && shuttle.longitude !== null
+    ? selectedStops.reduce((nearest, stop) => {
       const distance = Math.hypot((stop.latitude - shuttle.latitude) * 111, (stop.longitude - shuttle.longitude) * 111);
       return !nearest || distance < nearest.distance ? { stop, distance } : nearest;
     }, null as { stop: ApiStop; distance: number } | null)
@@ -118,7 +141,7 @@ function TrackShuttle() {
   const fallbackEstimatedMinutes = nearestStop && shuttle?.speedKmh && shuttle.speedKmh > 0
     ? Math.max(1, Math.round((nearestStop.distance / shuttle.speedKmh) * 60))
     : null;
-  const estimatedMinutes = liveEstimatedMinutes ?? eta?.estimated_minutes ?? fallbackEstimatedMinutes;
+  const estimatedMinutes = liveEstimatedMinutes ?? selectedEta?.estimated_minutes ?? fallbackEstimatedMinutes;
   const liveNotice = liveDistance !== null && liveDistance <= 0.25
     ? `${shuttle?.name || "The shuttle"} is currently at ${shuttle?.location || "an unknown location"} and is near you.`
     : liveDistance !== null && liveDistance <= 1
@@ -190,8 +213,8 @@ function TrackShuttle() {
               longitude: item.longitude,
               recordedAt: item.recordedAt,
             }))}
-            selectedShuttleId={Number(selectedShuttleId)}
-            stops={stops}
+            selectedShuttleId={selectedShuttleId ? Number(selectedShuttleId) : null}
+            stops={selectedStops}
             onStudentLocationChange={setStudentLocation}
           />
           <div className="flex items-center justify-between gap-4 border-t border-slate-100 bg-white px-5 py-4">

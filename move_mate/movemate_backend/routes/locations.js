@@ -7,7 +7,7 @@ const reverseGeocodeCache = new Map();
 
 async function reverseGeocode(latitude, longitude, shuttleId) {
   const cached = reverseGeocodeCache.get(shuttleId);
-  if (cached && Date.now() - cached.updatedAt < 60000 && Math.hypot(cached.latitude - latitude, cached.longitude - longitude) < 0.001) {
+  if (cached && Date.now() - cached.updatedAt < 15000 && Math.hypot(cached.latitude - latitude, cached.longitude - longitude) < 0.00005) {
     return cached.placeName;
   }
 
@@ -18,7 +18,10 @@ async function reverseGeocode(latitude, longitude, shuttleId) {
     if (!response.ok) return null;
     const result = await response.json();
     const address = result.address || {};
-    const placeName = address.road || address.neighbourhood || address.suburb || address.city_district || result.display_name || null;
+    const placeName = [result.name, address.amenity, address.building, address.leisure, address.tourism, address.university, address.college, address.school, address.road, address.neighbourhood, address.suburb, address.city_district]
+      .find((candidate) => typeof candidate === "string" && candidate.trim())?.split(",")[0].trim()
+      || result.display_name?.split(",")[0].trim()
+      || null;
     if (placeName) reverseGeocodeCache.set(shuttleId, { latitude, longitude, placeName, updatedAt: Date.now() });
     return placeName;
   } catch {

@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { Outlet } from "react-router-dom";
 import Wrapper from "../components/Wrapper";
 import Sidebar from "../components/Sidebar";
@@ -10,9 +9,7 @@ function AuthLayout() {
       <Sidebar />
       <LocationPrompt />
       <main>
-        <Suspense fallback={<div className="flex min-h-48 items-center justify-center text-sm text-slate-600">Loading page...</div>}>
-          <Outlet />
-        </Suspense>
+        <Outlet />
       </main>
     </Wrapper>
   );

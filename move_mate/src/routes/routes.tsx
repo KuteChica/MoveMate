@@ -1,19 +1,18 @@
-import { lazy, type ReactElement } from "react";
-
-const About = lazy(() => import("../pages/About/About"));
-const Contact = lazy(() => import("../pages/Contact/Contact"));
-const Home = lazy(() => import("../pages/Home/Home"));
-const Login = lazy(() => import("../pages/Login/Login"));
-const Signup = lazy(() => import("../pages/Signup/Signup"));
-const Dashboard = lazy(() => import("../pages/Dashboard/Dashboard"));
-const Routes = lazy(() => import("../pages/Routes/Routes"));
-const TrackShuttle = lazy(() => import("../pages/TrackShuttle/TrackShuttle"));
-const Notifications = lazy(() => import("../pages/Notifications/Notifications"));
-const Profile = lazy(() => import("../pages/Profile/Profile"));
-const Representative = lazy(() => import("../pages/Representative/Representative"));
-const BusStatus = lazy(() => import("../pages/BusStatus/BusStatus"));
-const DriverDashboard = lazy(() => import("../pages/DriverDashboard/DriverDashboard"));
-const AIAssistant = lazy(() => import("../pages/AIAssistant/AIAssistant"));
+import type { ReactElement } from "react";
+import About from "../pages/About/About";
+import Contact from "../pages/Contact/Contact";
+import Home from "../pages/Home/Home";
+import Login from "../pages/Login/Login";
+import Signup from "../pages/Signup/Signup";
+import Dashboard from "../pages/Dashboard/Dashboard";
+import Routes from "../pages/Routes/Routes";
+import TrackShuttle from "../pages/TrackShuttle/TrackShuttle";
+import Notifications from "../pages/Notifications/Notifications";
+import Profile from "../pages/Profile/Profile";
+import Representative from "../pages/Representative/Representative";
+import BusStatus from "../pages/BusStatus/BusStatus";
+import DriverDashboard from "../pages/DriverDashboard/DriverDashboard";
+import AIAssistant from "../pages/AIAssistant/AIAssistant";
 
 export type AppRouteDefinition = {
   path: string;
