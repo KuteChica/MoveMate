@@ -3,6 +3,54 @@ const assert = require('node:assert/strict');
 
 const aiRouter = require('../routes/ai.js');
 const shuttleRouter = require('../routes/shuttles.js');
+const { createAuthorize } = require('../middleware/auth');
+
+test('role authorization uses the current database role rather than a stale token claim', async () => {
+  const authorize = createAuthorize(async () => 'admin');
+
+  const request = { user: { id: 1, role: 'student' } };
+  const response = {
+    statusCode: null,
+    body: null,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    },
+  };
+  let nextCalled = false;
+
+  await authorize('admin')(request, response, () => { nextCalled = true; });
+
+  assert.equal(nextCalled, true);
+  assert.equal(request.user.role, 'admin');
+  assert.equal(response.statusCode, null);
+});
+
+test('role authorization still denies roles not allowed for the action', async () => {
+  const authorize = createAuthorize(async () => 'student');
+
+  const response = {
+    statusCode: null,
+    body: null,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    },
+  };
+
+  await authorize('admin')({ user: { id: 1, role: 'admin' } }, response, () => {});
+
+  assert.equal(response.statusCode, 403);
+  assert.equal(response.body.message, 'You do not have permission for this action.');
+});
 
 test('stored active status is inactive without fresh GPS', () => {
   const staleTimestamp = new Date(Date.now() - 121 * 1000).toISOString();
